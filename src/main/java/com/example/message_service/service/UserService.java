@@ -1,6 +1,7 @@
 package com.example.message_service.service;
 
 
+import com.example.message_service.dto.request.RegisterRequest;
 import com.example.message_service.model.User;
 import com.example.message_service.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,11 +51,21 @@ public class UserService {
     }
 
     // Đăng ký người dùng mới
-    public void registerUser(User user) {
-        // Mã hóa mật khẩu người dùng trước khi lưu vào cơ sở dữ liệu
-        String encodedPassword = hashPassword(user.getPasswordHash());
-        user.setPasswordHash(encodedPassword);
+    public void registerUser(RegisterRequest request) {
+        // Mã hóa mật khẩu từ request
+        String encodedPassword = hashPassword(request.getPassword()); // giả sử đổi trường thành password
 
-        userRepository.save(user);  // Lưu người dùng mới vào cơ sở dữ liệu
+        // Tạo entity User mới từ RegisterRequest
+        User user = new User();
+        user.setUsername(request.getUsername());
+        user.setPasswordHash(encodedPassword);
+        user.setDisplayName(request.getDisplayName());
+        user.setAvatarUrl(request.getAvatarUrl());
+        user.setPhoneNumber(request.getPhoneNumber());
+        user.setEmail(request.getEmail());
+
+        // Lưu vào DB
+        userRepository.save(user);
     }
+
 }
