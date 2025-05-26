@@ -2,6 +2,7 @@ package com.example.message_service.controller;
 
 
 import com.example.message_service.dto.request.LoginRequest;
+import com.example.message_service.dto.request.RegisterRequest;
 import com.example.message_service.model.User;
 import com.example.message_service.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,15 +31,15 @@ public class AuthController {
 
     // Đăng ký người dùng mới
     @PostMapping("/register")
-    public ResponseEntity<String> register(@RequestBody User user) {
+    public ResponseEntity<String> register(@RequestBody RegisterRequest request) {
         try {
             // Kiểm tra xem người dùng có tồn tại chưa
-            if (userService.userExists(user.getUsername(), user.getEmail(), user.getPhoneNumber())) {
+            if (userService.userExists(request.getUsername(), request.getEmail(), request.getPhoneNumber())) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("User already exists");
             }
 
             // Gọi service để lưu người dùng vào cơ sở dữ liệu
-            userService.registerUser(user);
+            userService.registerUser(request);
             return ResponseEntity.status(HttpStatus.CREATED).body("Registration successful");
         } catch (Exception e) {
             // Trả về lỗi nếu có vấn đề khi đăng ký
