@@ -2,10 +2,12 @@ package com.example.message_service.service;
 
 
 import com.example.message_service.components.JwtTokenUtil;
+import com.example.message_service.dto.ApiResponse;
 import com.example.message_service.dto.request.RegisterRequest;
 import com.example.message_service.model.User;
 import com.example.message_service.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -23,23 +25,22 @@ public class UserService {
 
 
 
-    public String loginUser(String username, String password) throws Exception {
+    public ApiResponse<String> loginUser(String username, String password) throws Exception {
         Optional<User> userOptional = userRepository.findByUsername(username);
 
         if (userOptional.isEmpty()) {
-            throw new RuntimeException("Tài khoản không tồn tại.");
+            return ApiResponse.error("01", "User not found");
         }
 
         User user = userOptional.get();
 
         if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new RuntimeException("Sai mật khẩu.");
+            return ApiResponse.error("02", "Mật khẩu không đúng");
         }
 
-        // Nếu đúng thì tạo JWT token trả về
         String token = jwtTokenUtil.generateToken(user);
 
-        return token;
+        return ApiResponse.success("00", "Đăng nhập thành công", token);
     }
 
 
