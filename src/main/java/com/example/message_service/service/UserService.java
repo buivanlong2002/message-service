@@ -1,14 +1,14 @@
 package com.example.message_service.service;
 
 
+import com.example.message_service.components.JwtTokenUtil;
 import com.example.message_service.dto.request.RegisterRequest;
 import com.example.message_service.model.User;
 import com.example.message_service.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Optional;
 
 @Service
@@ -16,49 +16,47 @@ public class UserService {
 
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+    @Autowired
+    private JwtTokenUtil jwtTokenUtil;
 
-    // Hàm mã hóa mật khẩu bằng SHA-256 (hoặc có thể thay bằng một phương thức khác)
-    private String hashPassword(String password) {
-        try {
-            MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
-            byte[] hashBytes = messageDigest.digest(password.getBytes());
-            StringBuilder hexString = new StringBuilder();
-            for (byte b : hashBytes) {
-                hexString.append(String.format("%02x", b));
-            }
-            return hexString.toString();
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("Error while hashing password", e);
+
+
+    public String loginUser(String username, String password) throws Exception {
+        Optional<User> userOptional = userRepository.findByUsername(username);
+
+        if (userOptional.isEmpty()) {
+            throw new RuntimeException("Tài khoản không tồn tại.");
         }
-    }
 
-    // Kiểm tra thông tin đăng nhập
-    public boolean validateUser(String username, String password) {
-        Optional<User> user = userRepository.findByUsername(username);
+        User user = userOptional.get();
 
-        if (user.isPresent()) {
-            // So sánh mật khẩu đã mã hóa với mật khẩu người dùng nhập vào
-            return user.get().getPasswordHash().equals(hashPassword(password));
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new RuntimeException("Sai mật khẩu.");
         }
-        return false;
+
+        // Nếu đúng thì tạo JWT token trả về
+        String token = jwtTokenUtil.generateToken(user);
+
+        return token;
     }
 
-    // Kiểm tra xem người dùng đã tồn tại hay chưa
-    public boolean userExists(String username, String email, String phoneNumber) {
-        return userRepository.findByUsername(username).isPresent() ||
-                userRepository.findByEmail(email).isPresent() ||
-                userRepository.findByPhoneNumber(phoneNumber).isPresent();
-    }
 
     // Đăng ký người dùng mới
     public void registerUser(RegisterRequest request) {
+        // Kiểm tra username đã tồn tại chưa (nếu muốn)
+        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
+            throw new RuntimeException("Username đã được sử dụng.");
+        }
+
         // Mã hóa mật khẩu từ request
-        String encodedPassword = hashPassword(request.getPassword()); // giả sử đổi trường thành password
+        String encodedPassword = passwordEncoder.encode(request.getPassword());
 
         // Tạo entity User mới từ RegisterRequest
         User user = new User();
         user.setUsername(request.getUsername());
-        user.setPasswordHash(encodedPassword);
+        user.setPassword(encodedPassword);
         user.setDisplayName(request.getDisplayName());
         user.setAvatarUrl(request.getAvatarUrl());
         user.setPhoneNumber(request.getPhoneNumber());

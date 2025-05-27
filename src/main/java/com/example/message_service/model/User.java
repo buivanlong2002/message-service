@@ -21,12 +21,6 @@ public class User {
     @Column(unique = true, nullable = false)
     private String username;
 
-    @Column(nullable = false)
-    @JsonIgnore  // Không serialize mật khẩu hash ra JSON
-    private String passwordHash;
-
-    @Transient  // Trường tạm thời, không lưu vào DB
-    @JsonProperty("password")  // Thuộc tính nhận từ JSON là "password"
     private String password;
 
     private String displayName;
