@@ -43,5 +43,5 @@ public class GeneralStatus implements Serializable {
         this.responseTime = new Date();
     }
 
-    // Optional: setters/getters if cần customize message hoặc displayMessage
+
 }

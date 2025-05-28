@@ -45,16 +45,19 @@ public class UserService {
 
 
     // Đăng ký người dùng mới
-    public void registerUser(RegisterRequest request) {
-        // Kiểm tra username đã tồn tại chưa (nếu muốn)
+    public ApiResponse<String> registerUser(RegisterRequest request) {
         if (userRepository.findByUsername(request.getUsername()).isPresent()) {
-            throw new RuntimeException("Username đã được sử dụng.");
+            return ApiResponse.error("01", "Username đã tồn tại");
         }
 
-        // Mã hóa mật khẩu từ request
-        String encodedPassword = passwordEncoder.encode(request.getPassword());
+        if (userRepository.findByPhoneNumber(request.getPhoneNumber()).isPresent()) {
+            return ApiResponse.error("02", "Số điện thoại đã được sử dụng");
+        }
 
-        // Tạo entity User mới từ RegisterRequest
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            return ApiResponse.error("03", "Email đã được sử dụng");
+        }
+        String encodedPassword = passwordEncoder.encode(request.getPassword());
         User user = new User();
         user.setUsername(request.getUsername());
         user.setPassword(encodedPassword);
@@ -62,9 +65,10 @@ public class UserService {
         user.setAvatarUrl(request.getAvatarUrl());
         user.setPhoneNumber(request.getPhoneNumber());
         user.setEmail(request.getEmail());
-
-        // Lưu vào DB
         userRepository.save(user);
+        return ApiResponse.success("00", "Đăng ký thành công", null);
     }
+
+
 
 }

@@ -41,19 +41,10 @@ public class AuthController {
 
     // Đăng ký người dùng mới
     @PostMapping("/register")
-    public ResponseEntity<?> register(@Valid  @RequestBody RegisterRequest request) {
-        try {
-            userService.registerUser(request);
-            return ResponseEntity.status(HttpStatus.CREATED).body("Registration successful");
-        } catch (RuntimeException ex) {
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .body("Registration failed: " + ex.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Something went wrong during registration.");
-        }
+    public ResponseEntity<ApiResponse<String>> register(@Valid @RequestBody RegisterRequest request) {
+        ApiResponse<String> response = userService.registerUser(request);
+        return ResponseEntity.ok(response);
     }
+
 
 }
