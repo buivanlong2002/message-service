@@ -1,6 +1,4 @@
 package com.example.message_service.model;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
@@ -15,18 +13,21 @@ import java.util.UUID;
 public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    private UUID id;
+    @Column(length = 36)
+    private String id;
+
+    @PrePersist
+    public void prePersist() {
+        if (id == null) {
+            id = UUID.randomUUID().toString();
+        }
+    }
 
     @Column(unique = true, nullable = false)
     private String username;
 
-    @Column(nullable = false)
-    @JsonIgnore  // Không serialize mật khẩu hash ra JSON
     private String passwordHash;
 
-    @Transient  // Trường tạm thời, không lưu vào DB
-    @JsonProperty("password")  // Thuộc tính nhận từ JSON là "password"
     private String password;
 
     private String displayName;

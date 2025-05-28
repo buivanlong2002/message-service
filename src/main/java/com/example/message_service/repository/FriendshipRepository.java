@@ -8,7 +8,7 @@ import java.util.Optional;
 import java.util.List;
 import java.util.UUID;
 
-public interface FriendshipRepository extends JpaRepository<Friendship, UUID> {
+public interface FriendshipRepository extends JpaRepository<Friendship, String> {
 
     Optional<Friendship> findBySenderAndReceiver(User sender, User receiver);
 

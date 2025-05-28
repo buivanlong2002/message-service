@@ -21,7 +21,7 @@ public class FriendshipService {
     private UserRepository userRepository;
 
     // Gửi lời mời kết bạn
-    public boolean sendFriendRequest(UUID senderId, UUID receiverId) {
+    public boolean sendFriendRequest(String senderId, String receiverId) {
         Optional<User> senderOpt = userRepository.findById(senderId);
         Optional<User> receiverOpt = userRepository.findById(receiverId);
 
@@ -47,7 +47,7 @@ public class FriendshipService {
     }
 
     // Chấp nhận lời mời kết bạn
-    public boolean acceptFriendRequest(UUID senderId, UUID receiverId) {
+    public boolean acceptFriendRequest(String senderId, String receiverId) {
         Optional<User> senderOpt = userRepository.findById(senderId);
         Optional<User> receiverOpt = userRepository.findById(receiverId);
 
@@ -69,7 +69,7 @@ public class FriendshipService {
     }
 
     // Từ chối lời mời kết bạn
-    public boolean rejectFriendRequest(UUID senderId, UUID receiverId) {
+    public boolean rejectFriendRequest(String senderId, String receiverId) {
         Optional<User> senderOpt = userRepository.findById(senderId);
         Optional<User> receiverOpt = userRepository.findById(receiverId);
 
@@ -88,7 +88,7 @@ public class FriendshipService {
     }
 
     // Lấy tất cả các mối quan hệ kết bạn của một người (bất kể họ là người gửi hay người nhận)
-    public List<Friendship> getFriendships(UUID userId) {
+    public List<Friendship> getFriendships(String userId) {
         Optional<User> userOpt = userRepository.findById(userId);
         if (userOpt.isPresent()) {
             User user = userOpt.get();
@@ -98,7 +98,7 @@ public class FriendshipService {
     }
 
     // Lấy tất cả lời mời kết bạn đang chờ chấp nhận (status = "pending") cho một người nhận
-    public List<Friendship> getPendingRequests(UUID receiverId) {
+    public List<Friendship> getPendingRequests(String receiverId) {
         Optional<User> receiverOpt = userRepository.findById(receiverId);
         if (receiverOpt.isPresent()) {
             User receiver = receiverOpt.get();
