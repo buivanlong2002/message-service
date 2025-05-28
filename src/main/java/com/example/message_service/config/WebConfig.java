@@ -19,4 +19,8 @@ public class WebConfig {
             }
         };
     }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 996ff0311a5d38304fa620dea285c633ff4f142b
