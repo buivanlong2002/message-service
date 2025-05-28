@@ -1,6 +1,5 @@
 package com.example.message_service.components;
 
-
 import com.example.message_service.model.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -36,16 +35,15 @@ public class JwtTokenUtil {
     public String generateToken(User user) throws Exception {
         Map<String, Object> claims = new HashMap<>();
         claims.put("id", user.getId());
-        claims.put("name", user.getDisplayName());
-        claims.put("email", user.getEmail());
-
+        claims.put("name", user.getUsername());
+        claims.put("email", user.getEmail()); // Optional: vẫn có thể lưu trong claims
 
         PrivateKey privateKey = keyProvider.getPrivateKey();
 
         try {
             return Jwts.builder()
                     .setClaims(claims)
-                    .setSubject(user.getEmail())
+                    .setSubject(user.getUsername()) // Đặt username làm subject
                     .setIssuedAt(new Date())
                     .setExpiration(new Date(System.currentTimeMillis() + expiration * 1000L))
                     .signWith(privateKey, SignatureAlgorithm.RS256)
@@ -91,7 +89,7 @@ public class JwtTokenUtil {
     }
 
     /**
-     * Lấy email (username) từ token.
+     * Lấy username từ token (lưu trong subject)
      */
     public String extractUsername(String token) {
         try {
@@ -103,7 +101,7 @@ public class JwtTokenUtil {
     }
 
     /**
-     * Kiểm tra token hợp lệ (email trùng và chưa hết hạn)
+     * Kiểm tra token hợp lệ (username trùng và chưa hết hạn)
      */
     public boolean validateToken(String token, UserDetails userDetails) {
         final String username = extractUsername(token);

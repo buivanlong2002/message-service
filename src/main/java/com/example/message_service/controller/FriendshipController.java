@@ -4,10 +4,11 @@ import com.example.message_service.service.FriendshipService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.rmi.server.UID;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/friendships")
+@RequestMapping("api/friendships")
 public class FriendshipController {
 
     @Autowired
