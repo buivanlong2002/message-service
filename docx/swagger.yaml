@@ -2,7 +2,8 @@ openapi: 3.0.3
 info:
   title: Message Service API
   version: 1.0.0
-  description: API để đăng nhập người dùng
+  description: API để đăng nhập và đăng ký người dùng
+
 paths:
   /login:
     post:
@@ -27,6 +28,37 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponseString'
+
+  /register:
+    post:
+      summary: Đăng ký người dùng
+      description: Tạo mới tài khoản người dùng
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Đăng ký thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseString'
+        '400':
+          description: Dữ liệu không hợp lệ hoặc đã tồn tại
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseString'
+        '500':
+          description: Lỗi hệ thống
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseString'
+
 components:
   schemas:
     LoginRequest:
@@ -43,6 +75,41 @@ components:
           type: string
           example: "password123"
           description: Mật khẩu của người dùng
+
+    RegisterRequest:
+      type: object
+      required:
+        - username
+        - password
+        - displayName
+      properties:
+        username:
+          type: string
+          example: "user123"
+          description: Tên đăng nhập duy nhất
+        password:
+          type: string
+          example: "password123"
+          description: Mật khẩu tài khoản
+        displayName:
+          type: string
+          example: "Nguyễn Văn A"
+          description: Tên hiển thị người dùng
+        avatarUrl:
+          type: string
+          format: uri
+          example: "https://example.com/avatar.jpg"
+          description: URL ảnh đại diện
+        phoneNumber:
+          type: string
+          example: "0123456789"
+          description: Số điện thoại
+        email:
+          type: string
+          format: email
+          example: "user@example.com"
+          description: Địa chỉ email
+
     ApiResponseString:
       type: object
       properties:
@@ -70,6 +137,5 @@ components:
         data:
           type: string
           nullable: true
-          description: Dữ liệu trả về (token JWT)
+          description: Dữ liệu trả về (token JWT hoặc null)
           example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-
