@@ -7,7 +7,6 @@ import com.example.message_service.dto.request.RegisterRequest;
 import com.example.message_service.model.User;
 import com.example.message_service.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -69,6 +68,12 @@ public class UserService {
         return ApiResponse.success("00", "Đăng ký thành công", null);
     }
 
-
+    public ApiResponse<User> getByUserId(String userId) {
+        Optional<User> userOptional = userRepository.findById(userId);
+        if (userOptional.isEmpty()) {
+            return ApiResponse.error("01", "User not found");
+        }
+        return ApiResponse.success("00", userOptional.get());
+    }
 
 }

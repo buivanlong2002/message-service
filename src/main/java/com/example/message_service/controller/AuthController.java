@@ -11,10 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("api/auth")
@@ -23,6 +20,7 @@ public class AuthController {
 
     @Autowired
     private UserService userService;
+
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<String>> login(@Valid  @RequestBody LoginRequest loginRequest) {
@@ -44,6 +42,11 @@ public class AuthController {
     public ResponseEntity<ApiResponse<String>> register(@Valid @RequestBody RegisterRequest request) {
         ApiResponse<String> response = userService.registerUser(request);
         return ResponseEntity.ok(response);
+    }
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<User>> getUser(@PathVariable String id) {
+        ApiResponse<User>userApiResponse=userService.getByUserId(id);
+        return ResponseEntity.ok(userApiResponse);
     }
 
 
