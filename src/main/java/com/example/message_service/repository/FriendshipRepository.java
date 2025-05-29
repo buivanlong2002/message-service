@@ -15,4 +15,6 @@ public interface FriendshipRepository extends JpaRepository<Friendship, String> 
     List<Friendship> findBySenderOrReceiver(User user, User user2);
 
     List<Friendship> findByStatusAndReceiver(String status, User receiver);
+
+    boolean existsBySenderAndReceiver(User sender, User receiver);
 }
