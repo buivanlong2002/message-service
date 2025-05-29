@@ -1,8 +1,5 @@
 package com.example.message_service.model;
-<<<<<<< HEAD
-=======
 
->>>>>>> 996ff0311a5d38304fa620dea285c633ff4f142b
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
@@ -46,29 +43,14 @@ public class User implements UserDetails {
     }
 
     @Id
-<<<<<<< HEAD
-    @Column(length = 36)
-    private String id;
-
-    @PrePersist
-    public void prePersist() {
-        if (id == null) {
-            id = UUID.randomUUID().toString();
-        }
-    }
-=======
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
->>>>>>> 996ff0311a5d38304fa620dea285c633ff4f142b
 
     @Column(unique = true, nullable = false)
     private String username;
 
-<<<<<<< HEAD
     private String passwordHash;
 
-=======
->>>>>>> 996ff0311a5d38304fa620dea285c633ff4f142b
     private String password;
 
     private String displayName;

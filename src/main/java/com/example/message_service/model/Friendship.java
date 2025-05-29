@@ -30,14 +30,8 @@ public class Friendship {
 
     private LocalDateTime acceptedAt; // Thời điểm chấp nhận lời mời
 
-    @Id
-    @Column(length = 36)
-    private String id; // Mã định danh duy nhất cho mối quan hệ kết bạn
 
-    @PrePersist
-    public void prePersist() {
-        if (id == null) {
-            id = UUID.randomUUID().toString();
-        }
-    }
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private String id;
 }

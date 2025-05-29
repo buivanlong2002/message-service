@@ -8,16 +8,10 @@ import java.util.UUID;
 @Entity
 public class Conversation {
 
-    @Id
-    @Column(length = 36)
-    private String id; // Dùng ID tự động tăng (có thể thay bằng UUID nếu cần)
 
-    @PrePersist
-    public void prePersist() {
-        if (id == null) {
-            id = UUID.randomUUID().toString();
-        }
-    }
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private String id;
 
     @Column(nullable = false)
     private String name; // Tên cuộc trò chuyện (chỉ dành cho nhóm)

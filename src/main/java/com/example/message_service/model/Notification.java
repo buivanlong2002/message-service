@@ -12,16 +12,10 @@ import java.util.UUID;
 @Data
 public class Notification {
 
-    @Id
-    @Column(length = 36)
-    private String id; // ID thông báo
 
-    @PrePersist
-    public void prePersist() {
-        if (id == null) {
-            id = UUID.randomUUID().toString();
-        }
-    }
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private String id;
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
