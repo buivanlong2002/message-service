@@ -13,15 +13,8 @@ import java.util.UUID;
 public class MessageStatus {
 
     @Id
-    @Column(length = 36)
-    private String id; // ID trạng thái tin nhắn
-
-    @PrePersist
-    public void prePersist() {
-        if (id == null) {
-            id = UUID.randomUUID().toString();
-        }
-    }
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private String id;
 
     @ManyToOne
     @JoinColumn(name = "message_id", nullable = false)

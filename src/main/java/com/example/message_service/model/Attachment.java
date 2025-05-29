@@ -12,16 +12,10 @@ import java.util.UUID;
 @Data
 public class Attachment {
 
-    @Id
-    @Column(length = 36)
-    private String id; // ID file đính kèm
 
-    @PrePersist
-    public void prePersist() {
-        if (id == null) {
-            id = UUID.randomUUID().toString();
-        }
-    }
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private String id;
 
     @ManyToOne
     @JoinColumn(name = "message_id", nullable = false)

@@ -1,6 +1,7 @@
 package com.example.message_service.model;
 
 import jakarta.persistence.*;
+
 import java.awt.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -8,16 +9,10 @@ import java.util.UUID;
 @Entity
 public class Message {
 
-    @Id
-    @Column(length = 36)
-    private String id;
 
-    @PrePersist
-    public void prePersist() {
-        if (id == null) {
-            id = UUID.randomUUID().toString();
-        }
-    }
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private String id;
 
     @ManyToOne
     @JoinColumn(name = "conversation_id", nullable = false)
