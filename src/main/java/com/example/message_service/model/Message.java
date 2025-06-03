@@ -1,22 +1,31 @@
 package com.example.message_service.model;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.awt.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
-
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
 @Entity
 public class Message {
 
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
+
+    @PrePersist
+    public void generateId() {
+        this.id = UUID.randomUUID().toString();
+    }
 
     @ManyToOne
     @JoinColumn(name = "conversation_id", nullable = false)
-    private Conversation conversation;  // Mối quan hệ với cuộc trò chuyện
+    private Conversation conversation;
 
     @ManyToOne
     @JoinColumn(name = "sender_id", nullable = false)
@@ -35,67 +44,4 @@ public class Message {
 
     private boolean isEdited;  // Kiểm tra xem tin nhắn đã được chỉnh sửa chưa
 
-    public String getId() {
-        return id;
-    }
-
-    public Conversation getConversation() {
-        return conversation;
-    }
-
-    public User getSender() {
-        return sender;
-    }
-
-    public String getContent() {
-        return content;
-    }
-
-    public TrayIcon.MessageType getMessageType() {
-        return messageType;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public Message getReplyTo() {
-        return replyTo;
-    }
-
-    public boolean isEdited() {
-        return isEdited;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public void setConversation(Conversation conversation) {
-        this.conversation = conversation;
-    }
-
-    public void setSender(User sender) {
-        this.sender = sender;
-    }
-
-    public void setContent(String content) {
-        this.content = content;
-    }
-
-    public void setMessageType(TrayIcon.MessageType messageType) {
-        this.messageType = messageType;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public void setReplyTo(Message replyTo) {
-        this.replyTo = replyTo;
-    }
-
-    public void setEdited(boolean edited) {
-        isEdited = edited;
-    }
 }

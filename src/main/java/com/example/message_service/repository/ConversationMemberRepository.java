@@ -5,13 +5,16 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.UUID;
 
 @Repository
-public interface ConversationMemberRepository extends JpaRepository<ConversationMember, Long> {
+public interface ConversationMemberRepository extends JpaRepository<ConversationMember, String> {
 
     List<ConversationMember> findByConversationId(String conversationId);
 
     List<ConversationMember> findByUserId(String userId);
 
     void deleteByConversationIdAndUserId(String conversationId, String userId);
+
+    boolean existsByConversationIdAndUserId(String conversationId, String userId);
 }

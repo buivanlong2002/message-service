@@ -1,11 +1,14 @@
 package com.example.message_service.controller;
 
+import com.example.message_service.dto.ApiResponse;
+import com.example.message_service.dto.request.AddMemberRequest;
 import com.example.message_service.model.ConversationMember;
 import com.example.message_service.service.ConversationMemberService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/conversation-members")
@@ -19,9 +22,11 @@ public class ConversationMemberController {
     }
 
     // Thêm thành viên vào cuộc trò chuyện
-    @PostMapping
-    public ConversationMember addMember(@RequestBody ConversationMember conversationMember) {
-        return conversationMemberService.addMemberToConversation(conversationMember);
+    @PostMapping("/add")
+    public ApiResponse<String> addMember(@RequestBody AddMemberRequest addMemberRequest) {
+        String uuidStringConversationId = addMemberRequest.getConversationId().toString();
+        String uuidStringUserId = addMemberRequest.getUserId().toString();
+        return conversationMemberService.addMemberToConversation(uuidStringConversationId, uuidStringUserId);
     }
 
     // Lấy danh sách thành viên của cuộc trò chuyện

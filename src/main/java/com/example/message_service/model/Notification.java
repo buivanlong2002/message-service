@@ -14,8 +14,12 @@ public class Notification {
 
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
+
+    @PrePersist
+    public void generateId() {
+        this.id = UUID.randomUUID().toString();
+    }
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)

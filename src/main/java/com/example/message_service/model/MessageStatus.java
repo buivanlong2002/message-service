@@ -13,8 +13,12 @@ import java.util.UUID;
 public class MessageStatus {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
+
+    @PrePersist
+    public void generateId() {
+        this.id = UUID.randomUUID().toString();
+    }
 
     @ManyToOne
     @JoinColumn(name = "message_id", nullable = false)

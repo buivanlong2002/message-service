@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/conversations")
@@ -25,6 +26,7 @@ public class ConversationController {
         Conversation conversation = conversationService.createConversation(name, isGroup, createdBy);
         return new ResponseEntity<>(conversation, HttpStatus.CREATED);
     }
+
 
     // Lấy tất cả cuộc trò chuyện của người dùng
     @GetMapping("/user/{userId}")
