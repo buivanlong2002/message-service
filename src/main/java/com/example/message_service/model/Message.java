@@ -34,7 +34,8 @@ public class Message {
     private String content;  // Nội dung tin nhắn
 
     @Enumerated(EnumType.STRING)
-    private TrayIcon.MessageType messageType;  // Loại tin nhắn (text, image, file...)
+    @Column(name = "message_type")
+    private MessageType messageType;  // Loại tin nhắn (text, image, file...)
 
     private LocalDateTime createdAt;  // Thời gian gửi
 

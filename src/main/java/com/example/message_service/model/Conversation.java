@@ -1,5 +1,6 @@
 package com.example.message_service.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -28,14 +29,13 @@ public class Conversation {
     @Column(nullable = false)
     private String createdBy;
 
-    @Column(nullable = false)
-    private boolean isGroup;
+    @Column(name = "is_group", nullable = false)
+    private boolean group;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
     @Column(nullable = false)
     private boolean isArchived = false;
-
 
 }
