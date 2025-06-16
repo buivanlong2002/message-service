@@ -10,12 +10,12 @@ public class ViewController {
         return "login";
     }
 
-    @GetMapping("/register")
+    @GetMapping("api/register")
     public String registerPage() {
         return "register";
     }
 
-    @GetMapping("/profile")
+    @GetMapping("api/profile")
     public String profilePage() {
         return "profile";
     }

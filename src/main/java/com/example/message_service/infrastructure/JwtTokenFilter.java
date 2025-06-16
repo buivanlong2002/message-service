@@ -1,13 +1,11 @@
 package com.example.message_service.infrastructure;
 
-
 import com.example.message_service.components.JwtTokenUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.antlr.v4.runtime.misc.NotNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.util.Pair;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -22,28 +20,28 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.aspectj.weaver.tools.cache.SimpleCacheFactory.path;
-
 @Component
 @RequiredArgsConstructor
 public class JwtTokenFilter extends OncePerRequestFilter {
-    private final HttpServletResponse httpServletResponse;
+
     @Value("${api.prefix}")
     private String apiPrefix;
 
     private final UserDetailsService userDetailsService;
+    private final RedisToken redisToken;
     private final JwtTokenUtil jwtTokenUtil;
 
     @Override
-    protected void doFilterInternal(@NotNull HttpServletRequest request,
-                                    @NotNull HttpServletResponse response,
-                                    @NotNull FilterChain filterChain)
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain)
             throws ServletException, IOException {
         try {
             if (isBypassToken(request)) {
                 filterChain.doFilter(request, response);
                 return;
             }
+
             final String authorizationHeader = request.getHeader("Authorization");
 
             if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
@@ -55,10 +53,13 @@ public class JwtTokenFilter extends OncePerRequestFilter {
 
             final String token = authorizationHeader.substring(7);
             final String username = jwtTokenUtil.extractUsername(token);
+
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-                if (jwtTokenUtil.validateToken(token, userDetails)) {
+                if (jwtTokenUtil.validateToken(token, userDetails)
+                        && redisToken.isTokenValid(username, token)) {
+
                     UsernamePasswordAuthenticationToken authentication =
                             new UsernamePasswordAuthenticationToken(
                                     userDetails, null, userDetails.getAuthorities());
@@ -72,36 +73,26 @@ public class JwtTokenFilter extends OncePerRequestFilter {
         } catch (Exception e) {
             if (!response.isCommitted()) {
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
-                e.printStackTrace();
-            } else {
-                logger.error("Response was already committed. Cannot send error.", e);
             }
+            e.printStackTrace();
         }
     }
-    // Kiểm tra URL có được bỏ qua xác thực hay không
-    private boolean isBypassToken(@NotNull HttpServletRequest request) {
 
-
-        // Danh sách các API không yêu cầu xác thực
+    private boolean isBypassToken(HttpServletRequest request) {
         final List<Pair<String, String>> bypassTokens = Arrays.asList(
                 Pair.of(String.format("%s/auth/register", apiPrefix), "POST"),
                 Pair.of(String.format("%s/auth/login", apiPrefix), "POST"),
-                Pair.of(String.format("%s/login", apiPrefix), "GET")
-                // để tạm chưa làm yêu cầu xác thực
-//                Pair.of(String.format("%s/users", apiPrefix), "GET"),
-//                Pair.of(String.format("%s/users/", apiPrefix), "GET"),
-//                Pair.of(String.format("%s/users/", apiPrefix), "DELETE"),
-//                Pair.of(String.format("%s/users/", apiPrefix), "POST"),
-//                Pair.of(String.format("%s/users/add", apiPrefix), "POST")
+                Pair.of(String.format("%s/login", apiPrefix), "GET"),
+                Pair.of(String.format("%s/profile", apiPrefix), "GET")
 
         );
-        // Duyệt danh sách và kiểm tra đường dẫn và phương thức HTTP
+
         for (Pair<String, String> bypassToken : bypassTokens) {
             if (request.getServletPath().contains(bypassToken.getFirst()) &&
                     request.getMethod().equalsIgnoreCase(bypassToken.getSecond())) {
-                return true; // Bypass xác thực
+                return true;
             }
         }
-        return false; // Không bypass, yêu cầu xác thực
+        return false;
     }
 }
