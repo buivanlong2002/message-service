@@ -34,7 +34,10 @@ public class WebSecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 String.format("%s/auth/login", apiPrefix),
-                                String.format("%s/auth/register", apiPrefix)
+                                String.format("%s/auth/register", apiPrefix),
+                                String.format("%s/login", apiPrefix),
+                                String.format("%s/profile", apiPrefix),
+                                String.format("%s/register", apiPrefix)
 
                         ).permitAll()
                         .anyRequest().authenticated()

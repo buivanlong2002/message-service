@@ -107,4 +107,9 @@ public class JwtTokenUtil {
         final String username = extractUsername(token);
         return username != null && username.equals(userDetails.getUsername()) && !isTokenExpired(token);
     }
+
+    public long getExpirationTime(String token) {
+        return extractClaims(token, Claims::getExpiration).getTime();
+    }
+
 }
