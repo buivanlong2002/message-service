@@ -85,7 +85,8 @@ public class JwtTokenFilter extends OncePerRequestFilter {
         // Danh sách các API không yêu cầu xác thực
         final List<Pair<String, String>> bypassTokens = Arrays.asList(
                 Pair.of(String.format("%s/auth/register", apiPrefix), "POST"),
-                Pair.of(String.format("%s/auth/login", apiPrefix), "POST")
+                Pair.of(String.format("%s/auth/login", apiPrefix), "POST"),
+                Pair.of(String.format("%s/login", apiPrefix), "GET")
                 // để tạm chưa làm yêu cầu xác thực
 //                Pair.of(String.format("%s/users", apiPrefix), "GET"),
 //                Pair.of(String.format("%s/users/", apiPrefix), "GET"),
