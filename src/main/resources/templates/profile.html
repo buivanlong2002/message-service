@@ -44,6 +44,8 @@
 
         const userId = payload.id || payload.sub || payload.user_id; // fallback nếu backend dùng tên khác
 
+        console.log(userId)
+
         $.ajax({
             url: `/api/auth/${userId}`,
             type: 'GET',

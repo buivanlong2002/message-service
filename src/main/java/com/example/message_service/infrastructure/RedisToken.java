@@ -32,8 +32,7 @@ public class RedisToken {
     // Lấy token từ Redis
     public String getToken(String username) {
         String key = getKey(username);
-        String token = redisTemplate.opsForValue().get(key);
-        return token;
+        return redisTemplate.opsForValue().get(key);
     }
 
     // Xoá token
@@ -45,7 +44,6 @@ public class RedisToken {
     // Kiểm tra token có hợp lệ không
     public boolean isTokenValid(String username, String token) {
         String savedToken = getToken(username);
-        boolean valid = savedToken != null && savedToken.equals(token);
-        return valid;
+        return savedToken != null && savedToken.equals(token);
     }
 }
