@@ -12,14 +12,8 @@ import java.util.UUID;
 @Data
 public class Notification {
 
-
     @Id
     private String id;
-
-    @PrePersist
-    public void generateId() {
-        this.id = UUID.randomUUID().toString();
-    }
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
@@ -32,12 +26,22 @@ public class Notification {
     @Column(nullable = false)
     private String content; // Nội dung thông báo
 
-    private String extraData; // Dữ liệu bổ sung (ví dụ: thông tin về tin nhắn, cuộc trò chuyện)
+    private String extraData; // Dữ liệu bổ sung (ví dụ: ID cuộc trò chuyện)
 
     @Column(nullable = false)
-    private boolean read; // Trạng thái thông báo (đã đọc hay chưa)
+    private boolean read;
 
-    @Column(nullable = false)
-    private LocalDateTime createdAt = LocalDateTime.now(); // Thời gian tạo thông báo
+    private LocalDateTime readAt;
 
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    public void prePersist() {
+        if (this.id == null || this.id.isEmpty()) {
+            this.id = UUID.randomUUID().toString();
+        }
+        this.createdAt = LocalDateTime.now();
+        this.read = false;
+    }
 }
