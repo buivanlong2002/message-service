@@ -7,12 +7,12 @@ import org.springframework.web.bind.annotation.GetMapping;
 public class ViewController {
     @GetMapping("api/login")
     public String loginPage() {
-        return "login";
+        return "/auth/login";
     }
 
     @GetMapping("api/register")
     public String registerPage() {
-        return "register";
+        return "/auth/register";
     }
 
     @GetMapping("api/profile")
