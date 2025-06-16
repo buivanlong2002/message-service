@@ -42,7 +42,7 @@
                     localStorage.setItem('access_token', response.data);
 
                     setTimeout(() => {
-                        window.location.href = '/profile'; // Cập nhật route thực tế nếu cần
+                        window.location.href = `${window.origin}/api/profile`; // Cập nhật route thực tế nếu cần
                     }, 1000);
                 } else {
                     $('#message').text("Đăng nhập thất bại: " + response.status.displayMessage);
