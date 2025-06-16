@@ -1,28 +1,32 @@
 package com.example.message_service.service;
 
+import com.example.message_service.dto.ApiResponse;
 import com.example.message_service.model.Attachment;
 import com.example.message_service.repository.AttachmentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.UUID;
 
 @Service
 public class AttachmentService {
 
+    private final AttachmentRepository attachmentRepository;
+
     @Autowired
-    private AttachmentRepository attachmentRepository;
+    public AttachmentService(AttachmentRepository attachmentRepository) {
+        this.attachmentRepository = attachmentRepository;
+    }
 
     // Lấy tất cả file đính kèm của một tin nhắn
-    public List<Attachment> getAttachmentsByMessage(String messageId) {
-        return attachmentRepository.findByMessageId(messageId);
+    public ApiResponse<List<Attachment>> getAttachmentsByMessage(String messageId) {
+        List<Attachment> attachments = attachmentRepository.findByMessageId(messageId);
+        return ApiResponse.success("00", "Lấy file đính kèm thành công", attachments);
     }
 
     // Thêm một file đính kèm mới
-    public Attachment addAttachment(Attachment attachment) {
-        return attachmentRepository.save(attachment);
+    public ApiResponse<Attachment> addAttachment(Attachment attachment) {
+        Attachment savedAttachment = attachmentRepository.save(attachment);
+        return ApiResponse.success("00", "Thêm file đính kèm thành công", savedAttachment);
     }
 }
-
-

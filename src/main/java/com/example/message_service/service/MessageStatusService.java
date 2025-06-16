@@ -1,5 +1,6 @@
 package com.example.message_service.service;
 
+import com.example.message_service.dto.ApiResponse;
 import com.example.message_service.model.MessageStatus;
 import com.example.message_service.repository.MessageStatusRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,39 +8,65 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
+import java.util.Optional;
 
 @Service
 public class MessageStatusService {
 
+    private final MessageStatusRepository messageStatusRepository;
+
     @Autowired
-    private MessageStatusRepository messageStatusRepository;
+    public MessageStatusService(MessageStatusRepository messageStatusRepository) {
+        this.messageStatusRepository = messageStatusRepository;
+    }
 
     // Lấy tất cả trạng thái của một tin nhắn
-    public List<MessageStatus> getStatusByMessage(String messageId) {
-        return messageStatusRepository.findByMessageId(messageId);
+    public ApiResponse<List<MessageStatus>> getStatusByMessage(String messageId) {
+        List<MessageStatus> statuses = messageStatusRepository.findByMessageId(messageId);
+        if (statuses.isEmpty()) {
+            return ApiResponse.error("01", "Không có trạng thái nào cho tin nhắn này");
+        }
+        return ApiResponse.success("00", "Lấy trạng thái theo tin nhắn thành công", statuses);
     }
 
-    // Lấy trạng thái của tin nhắn theo người dùng
-    public List<MessageStatus> getStatusByMessageAndUser(String messageId, String userId) {
-        return messageStatusRepository.findByMessageIdAndUserId(messageId, userId);
+    // Lấy trạng thái theo messageId và userId
+    public ApiResponse<List<MessageStatus>> getStatusByMessageAndUser(String messageId, String userId) {
+        List<MessageStatus> statuses = messageStatusRepository.findByMessageIdAndUserId(messageId, userId);
+        if (statuses.isEmpty()) {
+            return ApiResponse.error("02", "Không có trạng thái nào cho tin nhắn và người dùng này");
+        }
+        return ApiResponse.success("00", "Lấy trạng thái theo tin nhắn và người dùng thành công", statuses);
     }
 
-    // Lấy trạng thái tin nhắn của người dùng theo trạng thái
-    public List<MessageStatus> getStatusByUserAndStatus(String userId, String status) {
-        return messageStatusRepository.findByUserIdAndStatus(userId, status);
+    // Lấy trạng thái theo userId và status
+    public ApiResponse<List<MessageStatus>> getStatusByUserAndStatus(String userId, String status) {
+        List<MessageStatus> statuses = messageStatusRepository.findByUserIdAndStatus(userId, status);
+        if (statuses.isEmpty()) {
+            return ApiResponse.error("03", "Không có trạng thái nào phù hợp với người dùng và trạng thái này");
+        }
+        return ApiResponse.success("00", "Lấy trạng thái theo người dùng và trạng thái thành công", statuses);
     }
 
-    // Thêm trạng thái mới cho tin nhắn
-    public MessageStatus addMessageStatus(MessageStatus messageStatus) {
-        return messageStatusRepository.save(messageStatus);
+    // Thêm trạng thái mới
+    public ApiResponse<MessageStatus> addMessageStatus(MessageStatus messageStatus) {
+        messageStatus.setUpdatedAt(LocalDateTime.now()); // Optional
+        MessageStatus saved = messageStatusRepository.save(messageStatus);
+        return ApiResponse.success("00", "Thêm trạng thái tin nhắn thành công", saved);
     }
 
-    // Cập nhật trạng thái tin nhắn
-    public MessageStatus updateMessageStatus(String messageStatusId, String newStatus) {
-        MessageStatus messageStatus = messageStatusRepository.findById(messageStatusId).orElseThrow();
-        messageStatus.setStatus(newStatus);
-        messageStatus.setUpdatedAt(LocalDateTime.now());
-        return messageStatusRepository.save(messageStatus);
+
+    // Cập nhật trạng thái
+    public ApiResponse<MessageStatus> updateMessageStatus(String messageStatusId, String newStatus) {
+        Optional<MessageStatus> optionalStatus = messageStatusRepository.findById(messageStatusId);
+        if (optionalStatus.isEmpty()) {
+            return ApiResponse.error("04", "Không tìm thấy trạng thái tin nhắn với ID: " + messageStatusId);
+        }
+
+        MessageStatus status = optionalStatus.get();
+        status.setStatus(newStatus);
+        status.setUpdatedAt(LocalDateTime.now());
+        MessageStatus updated = messageStatusRepository.save(status);
+
+        return ApiResponse.success("00", "Cập nhật trạng thái thành công", updated);
     }
 }

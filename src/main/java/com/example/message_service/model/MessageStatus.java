@@ -16,23 +16,29 @@ public class MessageStatus {
     private String id;
 
     @PrePersist
-    public void generateId() {
+    public void prePersist() {
         this.id = UUID.randomUUID().toString();
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
     }
 
     @ManyToOne
     @JoinColumn(name = "message_id", nullable = false)
     @JsonIgnore
-    private Message message; // Tin nhắn liên kết với trạng thái
+    private Message message;
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     @JsonIgnore
-    private User user; // Người nhận thông báo trạng thái
+    private User user;
 
     @Column(nullable = false)
-    private String status = "delivered"; // Trạng thái tin nhắn (delivered, seen, etc.)
+    private String status = "delivered";
+
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 
     @Column(nullable = false)
-    private LocalDateTime updatedAt = LocalDateTime.now(); // Thời gian cập nhật trạng thái
+    private LocalDateTime updatedAt;
 }
+

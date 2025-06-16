@@ -1,6 +1,5 @@
 package com.example.message_service.controller;
 
-
 import com.example.message_service.dto.ApiResponse;
 import com.example.message_service.dto.request.LoginRequest;
 import com.example.message_service.dto.request.RegisterRequest;
@@ -13,8 +12,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.UUID;
-
 @RestController
 @RequestMapping("api/auth")
 @Validated
@@ -23,9 +20,9 @@ public class AuthController {
     @Autowired
     private UserService userService;
 
-
+    // Đăng nhập người dùng
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<String>> login(@Valid  @RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<ApiResponse<String>> login(@Valid @RequestBody LoginRequest loginRequest) {
         try {
             ApiResponse<String> response = userService.loginUser(
                     loginRequest.getUsername(),
@@ -45,11 +42,11 @@ public class AuthController {
         ApiResponse<String> response = userService.registerUser(request);
         return ResponseEntity.ok(response);
     }
+
+    // Lấy thông tin người dùng
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<User>> getUser(@PathVariable String id) {
-        ApiResponse<User>userApiResponse=userService.getByUserId(id);
+        ApiResponse<User> userApiResponse = userService.getByUserId(id);
         return ResponseEntity.ok(userApiResponse);
     }
-
-
 }

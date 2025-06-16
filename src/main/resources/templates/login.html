@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Đăng Nhập</title>
+</head>
+<body>
+<h1>Đăng Nhập</h1>
+
+<!-- Form đăng nhập -->
+<form id="loginForm">
+    <label for="username">Tên đăng nhập:</label>
+    <input type="text" id="username" name="username" required /><br/>
+
+    <label for="password">Mật khẩu:</label>
+    <input type="password" id="password" name="password" required /><br/>
+
+    <button type="submit">Đăng Nhập</button>
+</form>
+
+<script>
+    // Lắng nghe sự kiện submit của form
+    document.getElementById("loginForm").addEventListener("submit", async function(event) {
+        event.preventDefault();  // Ngừng hành động mặc định của form (ngừng reload trang)
+
+        // Lấy giá trị từ các trường input trong form
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+
+        // Tạo đối tượng dữ liệu cần gửi
+        const data = {
+            username: username,
+            password: password
+        };
+
+        try {
+            // Gửi yêu cầu POST đến API login
+            const response = await fetch("/api/auth/login", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(data)  // Chuyển đối tượng dữ liệu thành JSON
+            });
+
+            // Nhận phản hồi từ API
+            const result = await response.json();
+
+            if (response.ok) {
+                // Nếu đăng nhập thành công, chuyển hướng đến trang chính
+                alert("Đăng nhập thành công!");
+                window.location.href = "/home";  // Chuyển hướng đến trang home
+            } else {
+                // Nếu có lỗi, hiển thị thông báo lỗi
+                alert("Lỗi đăng nhập: " + result.message);
+            }
+        } catch (error) {
+            // Xử lý lỗi kết nối (nếu có)
+            alert("Đã xảy ra lỗi: " + error);
+        }
+    });
+</script>
+
+</body>
+</html>
