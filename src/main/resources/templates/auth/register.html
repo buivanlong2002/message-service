@@ -106,10 +106,10 @@
 <div class="register-container">
     <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Đăng ký</h2>
 
-    <div id="registerForm" class="">
+    <form id="registerForm">
         <div class="input-group">
-            <input type="text" id="fullName" name="fullName" placeholder="Họ và tên" required>
-            <label for="fullName">Họ và tên</label>
+            <input type="text" id="displayName" name="displayName" placeholder="Tên hiển thị" required>
+            <label for="displayName">Tên hiển thị</label>
         </div>
 
         <div class="input-group">
@@ -140,7 +140,7 @@
         <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2.5 rounded-lg hover:bg-blue-700 active:bg-blue-800">
             Đăng ký
         </button>
-    </div>
+    </form>
 
     <div class="mt-4 text-center text-sm text-gray-800">
         <a href="/api/login" class="link hover:underline">Đã có tài khoản? Đăng nhập</a>
@@ -153,13 +153,21 @@
     $('#registerForm').on('submit', function (e) {
         e.preventDefault();
 
+        const password = $('#password').val();
+        const confirmPassword = $('#confirmPassword').val();
+
+        if (password !== confirmPassword) {
+            $('#message').css({'color': '#ef4444', 'opacity': '1'}).text("Mật khẩu xác nhận không khớp.");
+            return;
+        }
+
         const data = {
-            fullName: $('#fullName').val(),
+            displayName: $('#displayName').val(),
             username: $('#username').val(),
             email: $('#email').val(),
             phoneNumber: $('#phoneNumber').val(),
-            password: $('#password').val(),
-            confirmPassword: $('#confirmPassword').val()
+            password: password,
+            avatarUrl: null
         };
 
         $.ajax({
@@ -170,7 +178,6 @@
             success: function (response) {
                 if (response.status.code === "00" && response.status.success) {
                     $('#message').css({'color': '#22c55e', 'opacity': '1'}).text(response.status.displayMessage);
-
                     setTimeout(() => {
                         window.location.href = '/login';
                     }, 1500);
@@ -185,4 +192,4 @@
     });
 </script>
 </body>
-</html>
+</html>h

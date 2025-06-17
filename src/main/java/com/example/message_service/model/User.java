@@ -52,8 +52,6 @@ public class User implements UserDetails {
     @Column(unique = true, nullable = false)
     private String username;
 
-    private String passwordHash;
-
     private String password;
 
     private String displayName;
