@@ -1,34 +1,52 @@
-/* ProfileOverlay.css */
-
-.overlay {
-    display: none;
+/* Overlay của profile */
+#profileOverlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.7);
-    z-index: 1000;
-    backdrop-filter: blur(4px);
+    background-color: rgba(0, 0, 0, 0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    transition: opacity 0.3s ease;
 }
 
-.overlay.active {
-    display: block;
+#profileOverlay.active {
+    display: flex;
+    opacity: 1;
 }
 
-.overlay-content {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 280px;
-    height: 100%;
-    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-    padding: 16px;
-    transform: translateX(-100%);
-    transition: transform 0.3s ease-in-out;
-    box-shadow: 4px 0 16px rgba(0, 0, 0, 0.15);
+#profileOverlay .overlay-content {
+    background-color: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    width: 80%;
+    max-width: 600px;
 }
 
-.overlay.active .overlay-content {
-    transform: translateX(0);
+/* Nội dung profile trong overlay */
+.overlay-content h2 {
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+
+.overlay-content p {
+    font-size: 16px;
+    color: #6b7280;
+}
+
+.overlay-content .btn-close {
+    padding: 8px 16px;
+    background-color: #f3f4f6;
+    border: none;
+    border-radius: 8px;
+    color: #1f2937;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.overlay-content .btn-close:hover {
+    background-color: #e0e7ff;
 }

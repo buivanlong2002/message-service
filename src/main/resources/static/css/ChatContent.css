@@ -1,49 +1,105 @@
-
-.chat-content {
-    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-    border-radius: 12px;
-    margin: 8px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-    transition: all 0.3s ease;
+/* Định dạng cho container chứa nội dung chat */
+.chat-container {
+    flex-grow: 1;
+    margin-left: 320px; /* Phần sidebar */
+    background-color: #f9fafb;
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
 }
 
+/* Header của nội dung trò chuyện */
 .chat-header {
-    border-bottom: 1px solid #e5e7eb;
-    background: #ffffff;
-    border-radius: 12px 12px 0 0;
+    display: flex;
+    justify-content: space-between;
+    padding: 15px;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
-.chat-input {
-    transition: all 0.2s ease;
+/* Tên nhóm và số thành viên */
+.chat-header .group-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
-.chat-input:focus {
-    transform: scale(1.01);
+/* Các button trong header */
+.chat-header button {
+    background: none;
+    border: none;
+    color: #2563eb;
+    font-size: 16px;
+    cursor: pointer;
+    transition: color 0.3s ease;
 }
 
-.send-button {
-    transition: all 0.3s ease;
+.chat-header button:hover {
+    color: #1d4ed8;
 }
 
-.send-button:hover {
-    background-color: #1d4ed8;
-    transform: translateY(-1px);
+/* Các tin nhắn trong chat */
+.message-container {
+    display: flex;
+    margin-bottom: 15px;
 }
 
+/* Tin nhắn của người dùng */
 .message-bubble {
-    transition: all 0.2s ease;
+    max-width: 70%;
+    padding: 12px 20px;
+    border-radius: 15px;
+    background-color: #e0f2fe;
+    color: #1d4ed8;
+    position: relative;
 }
 
-.message-bubble:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+/* Tin nhắn của người nhận */
+.message-bubble.bg-gray {
+    background-color: #f3f4f6;
+    color: #1f2937;
 }
 
-.message-options {
-    opacity: 0;
-    transition: opacity 0.2s ease;
+/* Hiển thị avatar người gửi */
+.message-container img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
 }
 
-.message-container:hover .message-options {
-    opacity: 1;
+/* Tạo khoảng cách cho các message bubble */
+.message-container + .message-container {
+    margin-top: 20px;
+}
+
+/* Input và nút gửi tin nhắn */
+.chat-input-container {
+    display: flex;
+    justify-content: space-between;
+    padding: 15px;
+    background-color: white;
+    border-top: 1px solid #e0e7ff;
+}
+
+.chat-input-container input {
+    padding: 10px 15px;
+    width: 80%;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+}
+
+.chat-input-container button {
+    padding: 12px 20px;
+    background-color: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.chat-input-container button:hover {
+    background-color: #1d4ed8;
 }
