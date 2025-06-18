@@ -157,7 +157,7 @@
                         $message.css({ 'color': '#a855f7' }).text(response.status.displayMessage);
                         localStorage.setItem('access_token', response.data);
                         setTimeout(() => {
-                            window.location.href = `${window.origin}/api/layout`;
+                            window.location.href = `${window.origin}/api/index`;
                         }, 1000);
                     } else {
                         $message.text("Đăng nhập thất bại: " + response.status.displayMessage);

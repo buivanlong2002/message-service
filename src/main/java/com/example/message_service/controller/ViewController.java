@@ -19,8 +19,8 @@ public class ViewController {
     public String profilePage() {
         return "profile";
     }
-    @GetMapping("api/layout")
+    @GetMapping("api/index")
     public String indexPage() {
-        return "/fragments/layout";
+        return "/index";
     }
 }

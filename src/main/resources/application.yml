@@ -25,15 +25,12 @@ spring:
       port: 6379
       timeout: 6000
 
-      thymeleaf:
-        prefix: classpath:/templates/
-        suffix: .html
-        mode: HTML5
-        cache: false # Tắt cache khi phát triển để thấy thay đổi ngay
+  thymeleaf:
+    prefix: classpath:/templates/
+    suffix: .html
+    mode: HTML
+    cache: false
 
-        web:
-          resources:
-            static-locations: classpath:/static/
 
 server:
   port: 8885
