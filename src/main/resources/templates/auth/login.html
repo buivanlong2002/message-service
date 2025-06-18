@@ -138,7 +138,7 @@
                     localStorage.setItem('access_token', response.data);
 
                     setTimeout(() => {
-                        window.location.href = `${window.origin}/api/profile`;
+                        window.location.href = `${window.origin}/api/index`;
                     }, 1);
                 } else {
                     $('#message').css({ 'color': '#ef4444' }).text("Đăng nhập thất bại: " + response.status.displayMessage);

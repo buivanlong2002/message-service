@@ -37,7 +37,8 @@ public class WebSecurityConfig {
                                 String.format("%s/auth/register", apiPrefix),
                                 String.format("%s/login", apiPrefix),
                                 String.format("%s/profile", apiPrefix),
-                                String.format("%s/register", apiPrefix)
+                                String.format("%s/register", apiPrefix),
+                                String.format("%s/index", apiPrefix)
 
                         ).permitAll()
                         .anyRequest().authenticated()

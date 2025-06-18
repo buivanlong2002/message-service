@@ -19,4 +19,8 @@ public class ViewController {
     public String profilePage() {
         return "profile";
     }
+    @GetMapping("api/index")
+    public String indexPage() {
+        return "index";
+    }
 }

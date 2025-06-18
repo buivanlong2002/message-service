@@ -179,7 +179,7 @@
                 if (response.status.code === "00" && response.status.success) {
                     $('#message').css({'color': '#22c55e', 'opacity': '1'}).text(response.status.displayMessage);
                     setTimeout(() => {
-                        window.location.href = '/login';
+                        window.location.href = '/api/login';
                     }, 1500);
                 } else {
                     $('#message').css({'color': '#ef4444', 'opacity': '1'}).text("Lỗi đăng ký: " + response.status.displayMessage);
