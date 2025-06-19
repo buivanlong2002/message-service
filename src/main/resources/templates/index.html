@@ -6,6 +6,7 @@
     <title>Giao diện Chat</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.1/css/all.min.css"/>
+    <link rel="icon" href="data:;base64,iVBORw0KGgo="> <!-- Ngăn lỗi favicon -->
     <style>
         body {
             margin: 0;
@@ -312,42 +313,15 @@
 
 <!-- Overlay Menu -->
 <div class="overlay" id="menuOverlay">
-    <div class="overlay-content" id="overlayContent">
-        <div class="flex items-center justify-between bg-gray-900 text-white rounded-t-lg p-4">
-            <div class="flex items-center">
-                <div class="w-14 h-14 bg-white rounded-full flex items-center justify-center text-black font-bold text-xl">BL</div>
-                <div class="ml-4">
-                    <div class="font-semibold text-xl">Bùi Văn Long</div>
-                </div>
-            </div>
-            <button class="text-white hover:text-gray-300 text-xl" id="closeOverlayBtn"><i class="fas fa-times"></i></button>
-        </div>
-        <ul class="mt-6 space-y-4" id="mainMenu">
-            <li class="flex items-center p-4 hover:bg-gray-100 rounded-lg cursor-pointer transition" data-section="findFriends">
-                <i class="fas fa-heart mr-4 text-black text-lg"></i> <span class="text-lg">Tìm bạn bè</span>
-            </li>
-            <li class="flex items-center p-4 hover:bg-gray-100 rounded-lg cursor-pointer transition" data-section="friends">
-                <i class="fas fa-user mr-4 text-black text-lg"></i> <span class="text-lg">Bạn bè</span>
-            </li>
-            <li class="flex items-center p-4 hover:bg-gray-100 rounded-lg cursor-pointer transition" data-section="groups">
-                <i class="fas fa-users mr-4 text-black text-lg"></i> <span class="text-lg">Tất cả nhóm</span>
-            </li>
-            <li class="flex items-center p-4 hover:bg-gray-100 rounded-lg cursor-pointer transition" data-section="settings">
-                <i class="fas fa-cog mr-4 text-black text-lg"></i> <span class="text-lg">Cài đặt</span>
-            </li>
-            <li class="flex items-center p-4 hover:bg-gray-100 rounded-lg cursor-pointer transition" data-section="logout">
-                <i class="fas fa-sign-out-alt mr-4 text-black text-lg"></i> <span class="text-lg">Đăng xuất</span>
-            </li>
-        </ul>
-        <div class="text-sm text-gray-500 mt-8 text-center">Phiên bản 1.0.0</div>
-    </div>
+    <div class="overlay-content" id="overlayContent"></div>
 </div>
 
 <!-- JavaScript -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-    // Hàm hiển thị menu chính
     function showMainMenu() {
-        document.getElementById('overlayContent').innerHTML = `
+        const overlayContent = document.getElementById('overlayContent');
+        overlayContent.innerHTML = `
             <div class="flex items-center justify-between bg-gray-900 text-white rounded-t-lg p-4">
                 <div class="flex items-center">
                     <div class="w-14 h-14 bg-white rounded-full flex items-center justify-center text-black font-bold text-xl">BL</div>
@@ -376,13 +350,10 @@
             </ul>
             <div class="text-sm text-gray-500 mt-8 text-center">Phiên bản 1.0.0</div>
         `;
-        attachMenuListeners();
-        attachCloseListener();
-    }
 
-    // Hàm gắn sự kiện cho các mục menu chính
-    function attachMenuListeners() {
-        document.querySelectorAll('#mainMenu li').forEach(item => {
+        // Gắn sự kiện menu
+        const menuItems = document.querySelectorAll('#mainMenu li');
+        menuItems.forEach(item => {
             item.addEventListener('click', () => {
                 const section = item.getAttribute('data-section');
                 let content = '';
@@ -398,17 +369,93 @@
                             </div>
                         `;
                         break;
+
                     case 'friends':
                         title = 'Bạn bè';
                         content = `
                             <div class="p-4">
-                                <ul class="space-y-2">
-                                    <li class="flex items-center p-2 hover:bg-gray-100 rounded-lg">Nguyễn Văn A</li>
-                                    <li class="flex items-center p-2 hover:bg-gray-100 rounded-lg">Trần Thị B</li>
+                                <ul id="friendList" class="space-y-2">
+                                    <li>Đang tải danh sách bạn bè...</li>
                                 </ul>
                             </div>
                         `;
+                        overlayContent.innerHTML = `
+                            <div class="flex items-center justify-between bg-gray-900 text-white rounded-t-lg p-4">
+                                <div class="flex items-center">
+                                    <button class="back-button mr-4 text-xl" id="backBtn"><i class="fas fa-arrow-left"></i></button>
+                                    <div class="font-semibold text-xl">${title}</div>
+                                </div>
+                                <button class="text-white hover:text-gray-300 text-xl" id="closeOverlayBtn"><i class="fas fa-times"></i></button>
+                            </div>
+                            ${content}
+                            <div class="text-sm text-gray-500 mt-8 text-center">Phiên bản 1.0.0</div>
+                        `;
+                        attachBackListener();
+                        attachCloseListener();
+
+                        const token = localStorage.getItem('access_token');
+                        const $list = $('#friendList');
+                        console.log('Token:', token);
+
+                        if (!token) {
+                            $list.html('<li class="text-red-500">Không tìm thấy token người dùng.</li>');
+                            return;
+                        }
+
+                        const payload = parseJwt(token);
+                        console.log('Payload:', payload);
+                        const userId = payload?.id;
+                        console.log('User ID:', userId);
+
+                        if (!userId) {
+                            $list.html('<li class="text-red-500">Không thể xác định người dùng từ token.</li>');
+                            return;
+                        }
+
+                        $.ajax({
+                            url: 'http://localhost:8885/api/friendships/friends',
+                            method: 'GET',
+                            data: { userId },
+                            headers: { 'Authorization': `Bearer ${token}` },
+                            dataType: 'json',
+                            success: function (result) {
+                                console.log('API Success Response:', JSON.stringify(result, null, 2));
+                                $list.empty();
+
+                                let friends = [];
+                                if (result['API Status']?.success && Array.isArray(result.data)) {
+                                    friends = result.data; // Cấu trúc: { "API Status": { success: true }, data: [] }
+                                } else if (Array.isArray(result.data)) {
+                                    friends = result.data; // Cấu trúc: { data: [] }
+                                } else if (Array.isArray(result)) {
+                                    friends = result; // Cấu trúc: []
+                                } else {
+                                    $list.append(`<li class="text-red-500">Dữ liệu bạn bè không hợp lệ: ${JSON.stringify(result)}</li>`);
+                                    return;
+                                }
+
+                                if (friends.length === 0) {
+                                    $list.append('<li class="text-gray-500">Không có bạn bè nào.</li>');
+                                } else {
+                                    friends.forEach(name => {
+                                        $list.append(`
+                                            <li class="flex items-center p-2 hover:bg-gray-100 rounded-lg">${name}</li>
+                                        `);
+                                    });
+                                }
+                            },
+                            error: function (xhr, status, error) {
+                                console.error('AJAX Error:', {
+                                    status: xhr.status,
+                                    statusText: xhr.statusText,
+                                    responseText: xhr.responseText,
+                                    error
+                                });
+                                $list.html(`<li class="text-red-500">Lỗi khi tải danh sách bạn bè: ${xhr.status} ${xhr.statusText}</li>`);
+                            }
+                        });
                         break;
+
                     case 'groups':
                         title = 'Tất cả nhóm';
                         content = `
@@ -420,6 +467,7 @@
                             </div>
                         `;
                         break;
+
                     case 'settings':
                         title = 'Cài đặt';
                         content = `
@@ -429,61 +477,92 @@
                             </div>
                         `;
                         break;
+
                     case 'logout':
                         title = 'Đăng xuất';
                         content = `
                             <div class="p-4">
                                 <p class="text-gray-600">Bạn có chắc chắn muốn đăng xuất?</p>
-                                <button class="mt-4 bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-900">Xác nhận</button>
+                                <button id="confirmLogout" class="mt-4 bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-900 w-full">Xác nhận</button>
                             </div>
                         `;
+                        setTimeout(() => {
+                            document.getElementById('confirmLogout')?.addEventListener('click', () => {
+                                localStorage.removeItem('access_token');
+                                location.reload();
+                            });
+                        }, 0);
                         break;
                 }
 
-                document.getElementById('overlayContent').innerHTML = `
-                    <div class="flex items-center justify-between bg-gray-900 text-white rounded-t-lg p-4">
-                        <div class="flex items-center">
-                            <button class="back-button mr-4 text-xl" id="backBtn"><i class="fas fa-arrow-left"></i></button>
-                            <div class="font-semibold text-xl">${title}</div>
+                if (section !== 'friends') {
+                    overlayContent.innerHTML = `
+                        <div class="flex items-center justify-between bg-gray-900 text-white rounded-t-lg p-4">
+                            <div class="flex items-center">
+                                <button class="back-button mr-4 text-xl" id="backBtn"><i class="fas fa-arrow-left"></i></button>
+                                <div class="font-semibold text-xl">${title}</div>
+                            </div>
+                            <button class="text-white hover:text-gray-300 text-xl" id="closeOverlayBtn"><i class="fas fa-times"></i></button>
                         </div>
-                        <button class="text-white hover:text-gray-300 text-xl" id="closeOverlayBtn"><i class="fas fa-times"></i></button>
-                    </div>
-                    ${content}
-                    <div class="text-sm text-gray-500 mt-8 text-center">Phiên bản 1.0.0</div>
-                `;
-                attachBackListener();
-                attachCloseListener();
+                        ${content}
+                        <div class="text-sm text-gray-500 mt-8 text-center">Phiên bản 1.0.0</div>
+                    `;
+                    attachBackListener();
+                    attachCloseListener();
+                }
             });
         });
+
+        attachCloseListener();
     }
 
-    // Hàm gắn sự kiện cho nút quay lại
+    function parseJwt(token) {
+        try {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(c =>
+                '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+            ).join(''));
+            return JSON.parse(jsonPayload);
+        } catch (e) {
+            console.error("Token không hợp lệ:", e);
+            return null;
+        }
+    }
+
     function attachBackListener() {
-        document.getElementById('backBtn').addEventListener('click', showMainMenu);
+        const backBtn = document.getElementById('backBtn');
+        if (backBtn) {
+            backBtn.removeEventListener('click', showMainMenu);
+            backBtn.addEventListener('click', showMainMenu);
+        }
     }
 
-    // Hàm gắn sự kiện cho nút đóng
     function attachCloseListener() {
-        document.getElementById('closeOverlayBtn').addEventListener('click', () => {
-            document.getElementById('menuOverlay').classList.remove('active');
-        });
+        const closeBtn = document.getElementById('closeOverlayBtn');
+        if (closeBtn) {
+            closeBtn.removeEventListener('click', closeOverlayHandler);
+            closeBtn.addEventListener('click', closeOverlayHandler);
+        }
     }
 
-    // Toggle overlay menu
+    function closeOverlayHandler() {
+        document.getElementById('menuOverlay').classList.remove('active');
+        document.getElementById('overlayContent').innerHTML = '';
+    }
+
     document.getElementById('toggleSidebarBtn').addEventListener('click', () => {
         const overlay = document.getElementById('menuOverlay');
         overlay.classList.toggle('active');
         showMainMenu();
     });
 
-    // Đóng overlay nếu click ra ngoài
     document.getElementById('menuOverlay').addEventListener('click', (e) => {
         if (e.target === e.currentTarget) {
             e.currentTarget.classList.remove('active');
         }
     });
 
-    // Hiển thị nội dung trò chuyện
     document.querySelectorAll('.group-item').forEach(item => {
         item.addEventListener('click', () => {
             document.querySelectorAll('.group-item').forEach(i => i.classList.remove('active'));
@@ -494,7 +573,6 @@
 
             document.getElementById('chatContent').innerHTML = `
                 <div class="chat-main flex flex-col h-full">
-                    <!-- Chat Header -->
                     <div class="chat-header flex items-center justify-between">
                         <div class="flex items-center">
                             <img src="https://via.placeholder.com/40" class="w-10 h-10 rounded-full mr-3 avatar" alt="Group Avatar">
@@ -515,10 +593,7 @@
                             </button>
                         </div>
                     </div>
-
-                    <!-- Nội dung tin nhắn -->
                     <div class="flex-grow overflow-y-auto space-y-4 p-6">
-                        <!-- Tin nhắn người khác -->
                         <div class="message-container flex items-start space-x-3">
                             <img src="https://via.placeholder.com/32" class="w-8 h-8 rounded-full avatar" alt="Avatar"/>
                             <div class="relative">
@@ -531,7 +606,6 @@
                                 </div>
                             </div>
                         </div>
-                        <!-- Tin nhắn ảnh -->
                         <div class="message-container flex items-start space-x-3">
                             <img src="https://via.placeholder.com/32" class="w-8 h-8 rounded-full avatar" alt="Avatar"/>
                             <div class="relative">
@@ -545,7 +619,6 @@
                                 </div>
                             </div>
                         </div>
-                        <!-- Tin nhắn của bạn -->
                         <div class="message-container flex justify-end">
                             <div class="relative">
                                 <div class="message-bubble bg-gray-800 text-white px-4 py-3 rounded-lg shadow-md max-w-md">
@@ -558,8 +631,6 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- Hộp nhập tin nhắn -->
                     <div class="p-4 border-t bg-white">
                         <div class="flex items-center gap-2">
                             <button class="action-button text-gray-600 hover:text-black" title="Gửi ảnh">
@@ -631,21 +702,16 @@
                 </div>
             `;
 
-            // Gắn sự kiện cho nút ba chấm
             document.getElementById('toggleInfoBtn').addEventListener('click', () => {
-                const chatInfo = document.getElementById('chatInfo');
-                chatInfo.classList.toggle('active');
+                document.getElementById('chatInfo').classList.toggle('active');
             });
 
-            // Gắn sự kiện cho nút đóng panel
             document.getElementById('closeInfoBtn').addEventListener('click', () => {
-                const chatInfo = document.getElementById('chatInfo');
-                chatInfo.classList.remove('active');
+                document.getElementById('chatInfo').classList.remove('active');
             });
         });
     });
 
-    // Hàm hiển thị overlay đổi tên nhóm
     function showRenameGroupOverlay(groupName) {
         document.getElementById('menuOverlay').classList.add('active');
         document.getElementById('overlayContent').innerHTML = `
@@ -666,7 +732,6 @@
         attachCloseListener();
     }
 
-    // Hàm hiển thị overlay rời nhóm
     function showLeaveGroupOverlay(groupName) {
         document.getElementById('menuOverlay').classList.add('active');
         document.getElementById('overlayContent').innerHTML = `
