@@ -33,6 +33,14 @@ public class WebSecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
+                                "/",                      // Trang chủ
+                                "/index",                // Trang index
+                                "/css/**",               // CSS
+                                "/js/**",                // JS
+                                "/images/**",            // Ảnh nếu có
+                                "/favicon.ico"           // Icon trình duyệt
+                        ).permitAll()
+                        .requestMatchers(
                                 String.format("%s/auth/login", apiPrefix),
                                 String.format("%s/auth/register", apiPrefix),
                                 String.format("%s/login", apiPrefix),

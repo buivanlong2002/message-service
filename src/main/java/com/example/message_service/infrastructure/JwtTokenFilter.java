@@ -86,15 +86,22 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 Pair.of(String.format("%s/profile", apiPrefix), "GET"),
                 Pair.of(String.format("%s/register", apiPrefix), "GET"),
                 Pair.of(String.format("%s/index", apiPrefix), "GET")
-
         );
 
+        // Bypass các request tài nguyên tĩnh
+        String path = request.getServletPath();
+
+        if (path.startsWith("/css/") || path.startsWith("/js/") || path.startsWith("/images/") || path.equals("/favicon.ico")) {
+            return true;
+        }
+
         for (Pair<String, String> bypassToken : bypassTokens) {
-            if (request.getServletPath().contains(bypassToken.getFirst()) &&
+            if (path.contains(bypassToken.getFirst()) &&
                     request.getMethod().equalsIgnoreCase(bypassToken.getSecond())) {
                 return true;
             }
         }
         return false;
     }
+
 }

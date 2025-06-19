@@ -1,0 +1,99 @@
+/* css/inputs.css */
+.input-field:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+}
+
+.chat-input {
+    transition: all 0.2s ease;
+    background: #f3f4f6;
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+}
+
+.dark-mode .chat-input {
+    background: #374151;
+    border: 1px solid #4b5563;
+    color: #ffffff;
+}
+
+.chat-input:focus {
+    transform: scale(1.01);
+    border-color: var(--primary-color);
+}
+
+.send-button {
+    background: var(--primary-color);
+    color: #ffffff;
+    transition: all 0.3s ease;
+    border-radius: 12px;
+}
+
+.send-button:hover {
+    background: var(--secondary-color);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+}
+
+.action-button {
+    transition: all 0.2s ease;
+}
+
+.action-button:hover {
+    transform: scale(1.1);
+    color: var(--primary-color);
+}
+
+.back-button {
+    background: transparent;
+    color: #ffffff;
+    transition: all 0.2s ease;
+}
+
+.back-button:hover {
+    color: #d1d5db;
+}
+
+.close-info-button {
+    background: transparent;
+    color: #4b5563;
+    transition: all 0.2s ease;
+    font-size: 1.2rem;
+    padding: 8px;
+}
+
+.dark-mode .close-info-button {
+    color: #d1d5db;
+}
+
+.close-info-button:hover {
+    color: var(--primary-color);
+}
+
+.option-button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 8px;
+    border-radius: 12px;
+    border: 1px solid #d1d5db;
+    background: #ffffff;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.dark-mode .option-button {
+    background: #374151;
+    border: 1px solid #4b5563;
+    color: #ffffff;
+}
+
+.option-button:hover {
+    background: #f3f4f6;
+    border-color: var(--primary-color);
+}
+
+.dark-mode .option-button:hover {
+    background: #4b5563;
+}
