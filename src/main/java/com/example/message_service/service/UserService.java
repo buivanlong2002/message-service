@@ -94,4 +94,17 @@ public class UserService {
 
         return ApiResponse.success("00", userOptional.get());
     }
+
+    public ApiResponse<String> logoutUser(String username, String token) {
+        // Kiểm tra token hợp lệ trước khi xóa
+        if (!redisToken.isTokenValid(username, token)) {
+            return ApiResponse.error("01", "Token không hợp lệ hoặc đã hết hạn");
+        }
+
+        // Xóa token khỏi Redis (logout)
+        redisToken.deleteToken(username);
+        return ApiResponse.success("00", "Logout thành công", null);
+    }
+
+
 }
