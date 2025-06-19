@@ -1,0 +1,10 @@
+/* css/styles.css */
+@import url('global.css');
+@import url('sidebar.css');
+@import url('chat.css');
+@import url('overlay.css');
+@import url('inputs.css');
+@import url('messages.css');
+@import url('info.css');
+@import url('animations.css');
+@import url('avatar.css');
