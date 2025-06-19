@@ -1,12 +1,14 @@
 package com.example.message_service.controller;
 
 import com.example.message_service.dto.ApiResponse;
+import com.example.message_service.model.Friendship;
 import com.example.message_service.service.FriendshipService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -59,4 +61,9 @@ public class FriendshipController {
         }
     }
 
+    @GetMapping("/friends")
+    public ResponseEntity<ApiResponse<List<Friendship>>> listFriends(@RequestParam String userId) {
+        ApiResponse<List<Friendship>> getFriendships = friendshipService.getFriendships(userId);
+        return getFriendships != null ? ResponseEntity.ok(getFriendships) : ResponseEntity.noContent().build();
+    }
 }
