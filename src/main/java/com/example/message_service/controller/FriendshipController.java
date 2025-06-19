@@ -1,6 +1,7 @@
 package com.example.message_service.controller;
 
 import com.example.message_service.dto.ApiResponse;
+import com.example.message_service.dto.FriendRequestDTO;
 import com.example.message_service.model.Friendship;
 import com.example.message_service.model.User;
 import com.example.message_service.service.FriendshipService;
@@ -67,5 +68,12 @@ public class FriendshipController {
         ApiResponse<List<String>> response = friendshipService.getFriendships(userId);
         return response != null ? ResponseEntity.ok(response) : ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/friend-requests")
+    public ResponseEntity<ApiResponse<List<FriendRequestDTO>>> getPendingFriendRequests(@RequestParam String userId) {
+        ApiResponse<List<FriendRequestDTO>> response = friendshipService.getPendingRequests(userId);
+        return ResponseEntity.ok(response);
+    }
+
 
 }

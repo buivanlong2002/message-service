@@ -1,6 +1,7 @@
 package com.example.message_service.service;
 
 import com.example.message_service.dto.ApiResponse;
+import com.example.message_service.dto.FriendRequestDTO;
 import com.example.message_service.model.Friendship;
 import com.example.message_service.model.User;
 import com.example.message_service.repository.FriendshipRepository;
@@ -105,30 +106,6 @@ public class FriendshipService {
         return ApiResponse.success("00", "Lời mời kết bạn đã bị từ chối", null);
     }
 
-
-    // Lấy tất cả các mối quan hệ kết bạn của một người (bất kể họ là người gửi hay người nhận)
-    public ApiResponse<List<String>> getFriendNames(String userId) {
-        Optional<User> userOpt = userRepository.findById(userId);
-        if (userOpt.isEmpty()) {
-            return ApiResponse.error("02", "Người dùng không tồn tại");
-        }
-
-        User user = userOpt.get();
-
-        List<Friendship> sent = friendshipRepository.findByStatusAndSender("accepted", user);
-        List<Friendship> received = friendshipRepository.findByStatusAndReceiver("accepted", user);
-
-        List<String> friendNames = new ArrayList<>();
-        for (Friendship f : sent) {
-            friendNames.add(f.getReceiver().getUsername());
-        }
-        for (Friendship f : received) {
-            friendNames.add(f.getSender().getUsername());
-        }
-
-        return ApiResponse.success("00", "Lấy danh sách tên bạn bè thành công", friendNames);
-    }
-
     public ApiResponse<List<String>> getFriendships(String userId) {
         Optional<User> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
@@ -155,15 +132,21 @@ public class FriendshipService {
 
 
     // Lấy tất cả lời mời kết bạn đang chờ chấp nhận (status = "pending") cho một người nhận
-    public ApiResponse<List<Friendship>> getPendingRequests(String receiverId) {
-        Optional<User> receiverOpt = userRepository.findById(receiverId);
+    public ApiResponse<List<FriendRequestDTO>> getPendingRequests(String userId) {
+        Optional<User> receiverOpt = userRepository.findById(userId);
         if (receiverOpt.isEmpty()) {
             return ApiResponse.error("02", "Người nhận không tồn tại");
         }
 
         User receiver = receiverOpt.get();
-        List<Friendship> requests = friendshipRepository.findByStatusAndReceiver("pending", receiver);
-        return ApiResponse.success("00", "Lấy danh sách lời mời kết bạn đang chờ thành công", requests);
+        List<Friendship> pendingRequests = friendshipRepository.findByStatusAndReceiver("pending", receiver);
+
+        List<FriendRequestDTO> dtoList = pendingRequests.stream()
+                .map(f -> new FriendRequestDTO(f.getSender().getDisplayName(), f.getRequestedAt()))
+                .collect(Collectors.toList());
+
+        return ApiResponse.success("00", "Lấy danh sách lời mời kết bạn đang chờ thành công", dtoList);
     }
+
 
 }
