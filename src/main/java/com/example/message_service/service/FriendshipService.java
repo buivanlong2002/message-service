@@ -10,9 +10,11 @@ import org.springframework.stereotype.Service;
 
 import java.rmi.server.UID;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class FriendshipService {
@@ -105,16 +107,51 @@ public class FriendshipService {
 
 
     // Lấy tất cả các mối quan hệ kết bạn của một người (bất kể họ là người gửi hay người nhận)
-    public ApiResponse<List<Friendship>> getFriendships(String userId) {
+    public ApiResponse<List<String>> getFriendNames(String userId) {
         Optional<User> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
             return ApiResponse.error("02", "Người dùng không tồn tại");
         }
 
         User user = userOpt.get();
-        List<Friendship> friendships = friendshipRepository.findBySenderOrReceiver(user, user);
-        return ApiResponse.success("00", "Lấy danh sách mối quan hệ thành công", friendships);
+
+        List<Friendship> sent = friendshipRepository.findByStatusAndSender("accepted", user);
+        List<Friendship> received = friendshipRepository.findByStatusAndReceiver("accepted", user);
+
+        List<String> friendNames = new ArrayList<>();
+        for (Friendship f : sent) {
+            friendNames.add(f.getReceiver().getUsername());
+        }
+        for (Friendship f : received) {
+            friendNames.add(f.getSender().getUsername());
+        }
+
+        return ApiResponse.success("00", "Lấy danh sách tên bạn bè thành công", friendNames);
     }
+
+    public ApiResponse<List<String>> getFriendships(String userId) {
+        Optional<User> userOpt = userRepository.findById(userId);
+        if (userOpt.isEmpty()) {
+            return ApiResponse.error("02", "Người dùng không tồn tại");
+        }
+
+        User user = userOpt.get();
+
+
+        List<Friendship> friendships = friendshipRepository.findBySenderOrReceiver(user, user);
+
+
+        List<String> friendNames = friendships.stream()
+                .filter(f -> "accepted".equals(f.getStatus()))
+                .map(f -> {
+                    User friend = f.getSender().equals(user) ? f.getReceiver() : f.getSender();
+                    return friend.getDisplayName(); // hoặc getUsername(), tùy bạn
+                })
+                .collect(Collectors.toList());
+
+        return ApiResponse.success("00", "Lấy danh sách bạn bè thành công", friendNames);
+    }
+
 
 
     // Lấy tất cả lời mời kết bạn đang chờ chấp nhận (status = "pending") cho một người nhận
