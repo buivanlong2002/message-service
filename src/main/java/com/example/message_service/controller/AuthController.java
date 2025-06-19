@@ -1,5 +1,6 @@
 package com.example.message_service.controller;
 
+import com.example.message_service.components.JwtTokenUtil;
 import com.example.message_service.dto.ApiResponse;
 import com.example.message_service.dto.request.LoginRequest;
 import com.example.message_service.dto.request.RegisterRequest;
@@ -19,6 +20,9 @@ public class AuthController {
 
     @Autowired
     private UserService userService;
+    @Autowired
+    private JwtTokenUtil jwtTokenUtil;
+
 
     // Đăng nhập người dùng
     @PostMapping("/login")
@@ -49,4 +53,25 @@ public class AuthController {
         ApiResponse<User> userApiResponse = userService.getByUserId(id);
         return ResponseEntity.ok(userApiResponse);
     }
+
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<String>> logout(@RequestHeader("Authorization") String authHeader) {
+        try {
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(ApiResponse.error("02", "Token không hợp lệ"));
+            }
+            String token = authHeader.substring(7); // bỏ "Bearer "
+            String username = jwtTokenUtil.extractUsername(token);
+
+            ApiResponse<String> response = userService.logoutUser(username, token);
+            return ResponseEntity.ok(response);
+
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("99", "Lỗi hệ thống"));
+        }
+    }
+
+
 }
