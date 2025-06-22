@@ -4,20 +4,28 @@ import com.example.message_service.dto.ApiResponse;
 import com.example.message_service.dto.ConversationDTO;
 import com.example.message_service.dto.request.UpdateConversationRequest;
 import com.example.message_service.model.Conversation;
+import com.example.message_service.model.User;
 import com.example.message_service.repository.ConversationRepository;
+import com.example.message_service.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class ConversationService {
 
     @Autowired
     private ConversationRepository conversationRepository;
+
+    @Autowired
+    private ConversationMemberService conversationMemberService; // Inject ConversationMemberService để lấy nhóm của người dùng
+
+    @Autowired
+    private UserRepository userRepository; // Inject UserRepository nếu bạn muốn kiểm tra người dùng trước khi lấy thông tin
 
     // Tạo cuộc trò chuyện
     public Conversation createConversation(String name, boolean isGroup, String createdBy) {
@@ -29,21 +37,6 @@ public class ConversationService {
 
         return conversationRepository.save(conversation);
     }
-
-//    // Lấy tất cả cuộc trò chuyện của người dùng
-//    public List<Conversation> getConversations(String userId) {
-//        return conversationRepository.findByCreatedBy(userId);
-//    }
-//
-//    // Lấy cuộc trò chuyện theo ID
-//    public Optional<Conversation> getConversationById(String id) {
-//        return conversationRepository.findById(id);
-//    }
-//
-//    // Tham gia vào cuộc trò chuyện
-//    public void joinConversation(String conversationId, String userId) {
-//        // Logic thêm người vào cuộc trò chuyện, có thể cần bảng thành viên (conversation_members)
-//    }
 
     // Thay đổi thông tin cuộc trò chuyện
     public ApiResponse<ConversationDTO> updateConversation(String conversationId, UpdateConversationRequest request) {
@@ -69,7 +62,6 @@ public class ConversationService {
         return ApiResponse.success("00", "Cập nhật cuộc trò chuyện thành công", dto);
     }
 
-
     // Lưu cuộc trò chuyện đã lưu trữ (archived)
     public void archiveConversation(String conversationId) {
         Optional<Conversation> conversationOpt = conversationRepository.findById(conversationId);
@@ -80,5 +72,33 @@ public class ConversationService {
         } else {
             throw new RuntimeException("Conversation not found");
         }
+    }
+
+    // Lấy danh sách các nhóm từ người dùng (bao gồm nhóm người tạo và nhóm người tham gia)
+    public ApiResponse<List<ConversationDTO>> getConversationsByUser(String userId) {
+        // Kiểm tra người dùng có tồn tại không
+        Optional<User> optionalUser = userRepository.findById(userId);
+        if (optionalUser.isEmpty()) {
+            return ApiResponse.error("03", "Không tìm thấy người dùng: " + userId);
+        }
+
+        // Lấy các cuộc trò chuyện mà người dùng tham gia
+        List<ConversationDTO> conversationList = conversationMemberService.getConversationByUserId(userId).getData();
+
+        // Lấy các cuộc trò chuyện mà người dùng là người tạo
+        List<Conversation> createdConversations = conversationRepository.findByCreatedBy(userId);
+
+        // Kết hợp cả hai danh sách
+        createdConversations.forEach(conversation -> {
+            // Nếu người dùng là người tạo cuộc trò chuyện, thêm vào danh sách
+            conversationList.add(new ConversationDTO(
+                    conversation.getId(),
+                    conversation.getName(),
+                    conversation.isGroup(),
+                    conversation.getCreatedAt()
+            ));
+        });
+
+        return ApiResponse.success("00", "Lấy danh sách các cuộc trò chuyện thành công", conversationList);
     }
 }
