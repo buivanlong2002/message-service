@@ -51,13 +51,22 @@ public class ConversationController {
 
     // Lấy danh sách các nhóm từ người dùng (bao gồm nhóm người tạo và nhóm người tham gia)
     @GetMapping("/user/{userId}/conversations")
-    public ResponseEntity<ApiResponse<List<ConversationDTO>>> getConversationsByUser(
+    public ResponseEntity<ApiResponse<List<ConversationDTO>>> getGroupConversationsByUser(
             @PathVariable String userId) {
 
-        // Lấy danh sách các cuộc trò chuyện (bao gồm nhóm người tham gia và nhóm người tạo)
+        // Gọi service để lấy toàn bộ conversations liên quan
         ApiResponse<List<ConversationDTO>> response = conversationService.getConversationsByUser(userId);
 
-        // Trả về response chứa danh sách nhóm của người dùng
-        return ResponseEntity.ok(response);
+        // Lọc chỉ lấy các nhóm (group = true)
+        List<ConversationDTO> groupConversations = response.getData().stream()
+                .filter(ConversationDTO::isGroup)
+                .toList();
+
+        // Trả về response mới với danh sách nhóm
+        ApiResponse<List<ConversationDTO>> filteredResponse =
+                ApiResponse.success("00", "Lấy danh sách nhóm thành công", groupConversations);
+
+        return ResponseEntity.ok(filteredResponse);
     }
+
 }

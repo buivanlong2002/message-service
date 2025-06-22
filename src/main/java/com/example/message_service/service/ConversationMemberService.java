@@ -1,7 +1,6 @@
 package com.example.message_service.service;
 
 import com.example.message_service.dto.ApiResponse;
-import com.example.message_service.dto.ConversationDTO;
 import com.example.message_service.model.Conversation;
 import com.example.message_service.model.ConversationMember;
 import com.example.message_service.model.User;
@@ -61,29 +60,18 @@ public class ConversationMemberService {
         return ApiResponse.success("00", "Thêm thành viên thành công.");
     }
 
-    // Lấy danh sách thành viên của cuộc trò chuyện
+    // Lấy danh sách thành viên cuộc trò chuyện
     public ApiResponse<List<User>> getMembersByConversationId(String conversationId) {
         Optional<Conversation> optionalConversation = conversationRepository.findById(conversationId);
         if (optionalConversation.isEmpty()) {
             return ApiResponse.error("02", "Không tìm thấy cuộc trò chuyện: " + conversationId);
         }
 
-        // Lấy tất cả các thành viên của cuộc trò chuyện
+        // Không thêm người tạo vào nữa
         List<ConversationMember> members = conversationMemberRepository.findByConversationId(conversationId);
-
-        // Lấy người tạo nhóm
-        Conversation conversation = optionalConversation.get();
-        User creator = userRepository.findById(conversation.getCreatedBy()).orElse(null); // Tìm người tạo nhóm
-
-        // Chuyển từ ConversationMember sang User và đảm bảo người tạo nhóm ở trong danh sách
         List<User> users = members.stream()
-                .map(ConversationMember::getUser)  // Chuyển từ ConversationMember sang User
+                .map(ConversationMember::getUser)
                 .collect(Collectors.toList());
-
-        // Nếu người tạo nhóm chưa có trong danh sách, thêm vào
-        if (creator != null && !users.contains(creator)) {
-            users.add(creator);
-        }
 
         return ApiResponse.success("00", "Lấy danh sách người dùng thành công", users);
     }
@@ -109,4 +97,32 @@ public class ConversationMemberService {
 
         return ApiResponse.success("00", "Xóa thành viên thành công.");
     }
+
+    // Vẫn giữ hàm này nếu muốn gọi thủ công khi cần
+    public ApiResponse<String> addCreatorToConversation(Conversation conversation) {
+        String creatorId = conversation.getCreatedBy();
+        System.out.println("🧩 Creator ID từ conversation: " + creatorId);
+
+        Optional<User> optionalUser = userRepository.findById(creatorId);
+        if (optionalUser.isEmpty()) {
+            return ApiResponse.error("03", "Không tìm thấy người tạo nhóm.");
+        }
+
+        boolean isCreatorMember = conversationMemberRepository.existsByConversationIdAndUserId(
+                conversation.getId(), creatorId);
+
+        if (!isCreatorMember) {
+            ConversationMember member = new ConversationMember();
+            member.setId(UUID.randomUUID().toString());
+            member.setConversation(conversation);
+            member.setUser(optionalUser.get());
+            member.setJoinedAt(LocalDateTime.now());
+            member.setRole("creator");
+
+            conversationMemberRepository.save(member);
+        }
+
+        return ApiResponse.success("00", "Người tạo đã được thêm vào cuộc trò chuyện.");
+    }
+
 }
