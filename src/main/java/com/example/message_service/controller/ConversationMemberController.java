@@ -1,12 +1,10 @@
 package com.example.message_service.controller;
 
 import com.example.message_service.dto.ApiResponse;
-import com.example.message_service.dto.ConversationDTO;
 import com.example.message_service.dto.request.AddMemberRequest;
 import com.example.message_service.dto.request.GetMembersByConversationRequest;
-import com.example.message_service.dto.request.GetConversationByUserRequest;
 import com.example.message_service.dto.request.RemoveMemberRequest;
-import com.example.message_service.model.ConversationMember;
+import com.example.message_service.model.User;
 import com.example.message_service.service.ConversationMemberService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -34,18 +32,10 @@ public class ConversationMemberController {
 
     // Lấy danh sách thành viên trong một cuộc trò chuyện
     @PostMapping("/members-by-conversation")
-    public ApiResponse<List<ConversationMember>> getMembersByConversation(
+    public ApiResponse<List<User>> getMembersByConversation(
             @RequestBody GetMembersByConversationRequest request) {
-        String conversationId = request.getConversationId().toString();
+        String conversationId = request.getConversationId().toString();  // Truyền trực tiếp conversationId là String
         return conversationMemberService.getMembersByConversationId(conversationId);
-    }
-
-    // Lấy danh sách các cuộc trò chuyện của một người dùng
-    @PostMapping("/conversations-by-user")
-    public ApiResponse<List<ConversationDTO>> getMembersByUser(
-            @RequestBody GetConversationByUserRequest request) {
-        String userId = request.getUserId().toString();
-        return conversationMemberService.getConversationByUserId(userId);
     }
 
     // Xóa thành viên khỏi cuộc trò chuyện

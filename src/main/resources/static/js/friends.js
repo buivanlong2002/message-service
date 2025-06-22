@@ -42,11 +42,11 @@ export function loadFriendsList() {
             if (friends.length === 0) {
                 $list.append('<li class="text-gray-500">Không có bạn bè nào.</li>');
             } else {
-                friends.forEach(name => {
+                friends.forEach(name =>
                     $list.append(`
                         <li class="flex items-center p-2 hover:bg-gray-100 rounded-lg">${name}</li>
-                    `);
-                });
+                    `)
+                );
             }
         },
         error: function (xhr) {
