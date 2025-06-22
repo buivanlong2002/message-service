@@ -28,8 +28,8 @@ public class Notification {
 
     private String extraData; // Dữ liệu bổ sung (ví dụ: ID cuộc trò chuyện)
 
-    @Column(nullable = false)
-    private boolean read;
+    @Column(name = "is_read", nullable = false)
+    private boolean read; // ⚠ Đã đổi tên cột thành `is_read`
 
     private LocalDateTime readAt;
 
