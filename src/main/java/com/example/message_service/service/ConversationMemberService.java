@@ -48,6 +48,7 @@ public class ConversationMemberService {
         }
 
         ConversationMember conversationMember = new ConversationMember();
+        conversationMember.setId(UUID.randomUUID().toString());
         conversationMember.setConversation(conversation);
         conversationMember.setUser(user);
         conversationMember.setJoinedAt(LocalDateTime.now());
