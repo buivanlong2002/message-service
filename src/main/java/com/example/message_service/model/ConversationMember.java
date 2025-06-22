@@ -15,8 +15,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class ConversationMember {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
     @ManyToOne
     @JoinColumn(name = "conversation_id", referencedColumnName = "id")
