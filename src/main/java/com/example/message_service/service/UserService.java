@@ -30,8 +30,8 @@ public class UserService {
     /**
      * Đăng nhập người dùng và sinh token
      */
-    public ApiResponse<String> loginUser(String username, String password) throws Exception {
-        Optional<User> userOptional = userRepository.findByUsername(username);
+    public ApiResponse<String> loginUser(String email, String password) throws Exception {
+        Optional<User> userOptional = userRepository.findByEmail(email);
 
         if (userOptional.isEmpty()) {
             return ApiResponse.error("01", "User không tồn tại");
@@ -46,7 +46,7 @@ public class UserService {
         String token = jwtTokenUtil.generateToken(user);
         long expirationTime = jwtTokenUtil.getExpirationTime(token);
 
-        redisToken.saveToken(user.getUsername(), token, expirationTime);
+        redisToken.saveToken(user.getEmail(), token, expirationTime);
 
         return ApiResponse.success("00", "Đăng nhập thành công", token);
     }

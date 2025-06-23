@@ -29,7 +29,7 @@ public class AuthController {
     public ResponseEntity<ApiResponse<String>> login(@Valid @RequestBody LoginRequest loginRequest) {
         try {
             ApiResponse<String> response = userService.loginUser(
-                    loginRequest.getUsername(),
+                    loginRequest.getEmail(),
                     loginRequest.getPassword()
             );
             return ResponseEntity.ok(response);
