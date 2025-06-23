@@ -1,7 +1,7 @@
 package com.example.message_service.service;
 
 import com.example.message_service.dto.ApiResponse;
-import com.example.message_service.dto.FriendRequestDTO;
+import com.example.message_service.dto.request.FriendRequestRequest;
 import com.example.message_service.model.Friendship;
 import com.example.message_service.model.User;
 import com.example.message_service.repository.FriendshipRepository;
@@ -9,12 +9,9 @@ import com.example.message_service.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.rmi.server.UID;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -132,7 +129,7 @@ public class FriendshipService {
 
 
     // Lấy tất cả lời mời kết bạn đang chờ chấp nhận (status = "pending") cho một người nhận
-    public ApiResponse<List<FriendRequestDTO>> getPendingRequests(String userId) {
+    public ApiResponse<List<FriendRequestRequest>> getPendingRequests(String userId) {
         Optional<User> receiverOpt = userRepository.findById(userId);
         if (receiverOpt.isEmpty()) {
             return ApiResponse.error("02", "Người nhận không tồn tại");
@@ -141,8 +138,8 @@ public class FriendshipService {
         User receiver = receiverOpt.get();
         List<Friendship> pendingRequests = friendshipRepository.findByStatusAndReceiver("pending", receiver);
 
-        List<FriendRequestDTO> dtoList = pendingRequests.stream()
-                .map(f -> new FriendRequestDTO(f.getSender().getDisplayName(), f.getRequestedAt()))
+        List<FriendRequestRequest> dtoList = pendingRequests.stream()
+                .map(f -> new FriendRequestRequest(f.getSender().getDisplayName(), f.getRequestedAt()))
                 .collect(Collectors.toList());
 
         return ApiResponse.success("00", "Lấy danh sách lời mời kết bạn đang chờ thành công", dtoList);

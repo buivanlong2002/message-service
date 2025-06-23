@@ -1,7 +1,7 @@
 package com.example.message_service.controller;
 
 import com.example.message_service.dto.ApiResponse;
-import com.example.message_service.dto.ConversationDTO;
+import com.example.message_service.dto.response.ConversationResponse;
 import com.example.message_service.dto.request.UpdateConversationRequest;
 import com.example.message_service.model.Conversation;
 import com.example.message_service.service.ConversationService;
@@ -34,11 +34,11 @@ public class ConversationController {
 
     // Cập nhật cuộc trò chuyện (chỉnh sửa tên hoặc nhóm/cá nhân)
     @PutMapping("/{conversationId}/update")
-    public ResponseEntity<ApiResponse<ConversationDTO>> updateConversation(
+    public ResponseEntity<ApiResponse<ConversationResponse>> updateConversation(
             @PathVariable String conversationId,
             @RequestBody UpdateConversationRequest request) {
 
-        ApiResponse<ConversationDTO> response = conversationService.updateConversation(conversationId, request);
+        ApiResponse<ConversationResponse> response = conversationService.updateConversation(conversationId, request);
         return ResponseEntity.ok(response);
     }
 
@@ -51,19 +51,19 @@ public class ConversationController {
 
     // Lấy danh sách các nhóm từ người dùng (bao gồm nhóm người tạo và nhóm người tham gia)
     @GetMapping("/user/{userId}")
-    public ResponseEntity<ApiResponse<List<ConversationDTO>>> getGroupConversationsByUser(
+    public ResponseEntity<ApiResponse<List<ConversationResponse>>> getGroupConversationsByUser(
             @PathVariable String userId) {
 
         // Gọi service để lấy toàn bộ conversations liên quan
-        ApiResponse<List<ConversationDTO>> response = conversationService.getConversationsByUser(userId);
+        ApiResponse<List<ConversationResponse>> response = conversationService.getConversationsByUser(userId);
 
         // Lọc chỉ lấy các nhóm (group = true)
-        List<ConversationDTO> groupConversations = response.getData().stream()
-                .filter(ConversationDTO::isGroup)
+        List<ConversationResponse> groupConversations = response.getData().stream()
+                .filter(ConversationResponse::isGroup)
                 .toList();
 
         // Trả về response mới với danh sách nhóm
-        ApiResponse<List<ConversationDTO>> filteredResponse =
+        ApiResponse<List<ConversationResponse>> filteredResponse =
                 ApiResponse.success("00", "Lấy danh sách nhóm thành công", groupConversations);
 
         return ResponseEntity.ok(filteredResponse);
