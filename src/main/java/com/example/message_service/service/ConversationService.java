@@ -4,14 +4,9 @@ import com.example.message_service.dto.ApiResponse;
 import com.example.message_service.dto.request.UpdateConversationRequest;
 import com.example.message_service.dto.response.ConversationResponse;
 import com.example.message_service.dto.response.LastMessageInfo;
-import com.example.message_service.model.Conversation;
-import com.example.message_service.model.ConversationMember;
-import com.example.message_service.model.Message;
-import com.example.message_service.model.User;
-import com.example.message_service.repository.ConversationMemberRepository;
-import com.example.message_service.repository.ConversationRepository;
-import com.example.message_service.repository.MessageRepository;
-import com.example.message_service.repository.UserRepository;
+import com.example.message_service.model.*;
+import com.example.message_service.repository.*;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -96,7 +91,7 @@ public class ConversationService {
         conversation.setGroup(request.isGroup());
         conversationRepository.save(conversation);
 
-        ConversationResponse dto = toConversationResponse(conversation, null);
+        ConversationResponse dto = toConversationResponse(conversation, null, null);
         return ApiResponse.success("00", "Cập nhật cuộc trò chuyện thành công", dto);
     }
 
@@ -114,16 +109,27 @@ public class ConversationService {
         }
 
         List<ConversationMember> members = conversationMemberRepository.findByUserId(userId);
-
-        List<ConversationResponse> responses = members.stream()
+        List<Conversation> conversations = members.stream()
                 .map(ConversationMember::getConversation)
                 .filter(Objects::nonNull)
                 .distinct()
-                .map(conv -> toConversationResponse(conv, userId))
+                .collect(Collectors.toList());
+
+        // Lấy last message cho mỗi conversation
+        Map<String, Message> lastMessages = new HashMap<>();
+        for (Conversation conv : conversations) {
+            Message lastMsg = messageRepository.findTopByConversationIdOrderByCreatedAtDesc(conv.getId());
+            if (lastMsg != null) {
+                lastMessages.put(conv.getId(), lastMsg);
+            }
+        }
+
+        List<ConversationResponse> responses = conversations.stream()
+                .map(conv -> toConversationResponse(conv, userId, lastMessages.get(conv.getId())))
                 .sorted((a, b) -> {
                     LocalDateTime timeA = a.getLastMessage() != null ? a.getLastMessage().getCreatedAt() : a.getCreatedAt();
                     LocalDateTime timeB = b.getLastMessage() != null ? b.getLastMessage().getCreatedAt() : b.getCreatedAt();
-                    return timeB.compareTo(timeA);
+                    return timeB.compareTo(timeA); // Mới nhất lên đầu
                 })
                 .collect(Collectors.toList());
 
@@ -142,7 +148,7 @@ public class ConversationService {
                 .findFirst();
     }
 
-    private ConversationResponse toConversationResponse(Conversation conversation, String requesterId) {
+    private ConversationResponse toConversationResponse(Conversation conversation, String requesterId, Message lastMessage) {
         String name;
         List<ConversationMember> members = conversationMemberRepository.findByConversationId(conversation.getId());
 
@@ -163,7 +169,6 @@ public class ConversationService {
             }
         }
 
-        Message lastMessage = messageRepository.findTopByConversationIdOrderByCreatedAtDesc(conversation.getId());
         LastMessageInfo lastMessageInfo = null;
         if (lastMessage != null) {
             lastMessageInfo = new LastMessageInfo(
