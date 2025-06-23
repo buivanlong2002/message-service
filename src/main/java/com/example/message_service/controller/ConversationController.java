@@ -24,13 +24,24 @@ public class ConversationController {
     private ConversationMemberService conversationMemberService; // Thêm ConversationMemberService để gọi các phương thức liên quan đến thành viên trong nhóm
 
     // Tạo cuộc trò chuyện
-    @PostMapping("/create")
-    public ResponseEntity<Conversation> createConversation(@RequestParam String name,
-                                                           @RequestParam boolean isGroup,
-                                                           @RequestParam String createdBy) {
-        Conversation conversation = conversationService.createConversation(name, isGroup, createdBy);
+    @PostMapping("/create-group")
+    public ResponseEntity<Conversation> createGroupConversation(
+            @RequestParam String name,
+            @RequestParam String createdBy) {
+
+        Conversation conversation = conversationService.createConversation(name, true, createdBy);
         return new ResponseEntity<>(conversation, HttpStatus.CREATED);
     }
+
+    @PostMapping("/one-to-one")
+    public ResponseEntity<Conversation> getOrCreateOneToOneConversation(
+            @RequestParam String senderId,
+            @RequestParam String receiverId) {
+
+        Conversation conversation = conversationService.getOrCreateOneToOneConversation(senderId, receiverId);
+        return new ResponseEntity<>(conversation, HttpStatus.OK);
+    }
+
 
     // Cập nhật cuộc trò chuyện (chỉnh sửa tên hoặc nhóm/cá nhân)
     @PutMapping("/{conversationId}/update")

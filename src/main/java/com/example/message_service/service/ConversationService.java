@@ -1,8 +1,8 @@
 package com.example.message_service.service;
 
 import com.example.message_service.dto.ApiResponse;
-import com.example.message_service.dto.response.ConversationResponse;
 import com.example.message_service.dto.request.UpdateConversationRequest;
+import com.example.message_service.dto.response.ConversationResponse;
 import com.example.message_service.dto.response.LastMessageInfo;
 import com.example.message_service.model.Conversation;
 import com.example.message_service.model.ConversationMember;
@@ -38,7 +38,6 @@ public class ConversationService {
     @Autowired
     private MessageRepository messageRepository;
 
-    //Tạo cuộc trò chuyện nhóm, thêm người tạo (role: "creator")
     public Conversation createConversation(String name, boolean isGroup, String createdBy) {
         Conversation conversation = new Conversation();
         conversation.setName(name);
@@ -51,8 +50,6 @@ public class ConversationService {
         return savedConversation;
     }
 
-
-    // Thay đổi thông tin cuộc trò chuyện
     public ApiResponse<ConversationResponse> updateConversation(String conversationId, UpdateConversationRequest request) {
         Optional<Conversation> optionalConversation = conversationRepository.findById(conversationId);
         if (optionalConversation.isEmpty()) {
@@ -69,13 +66,13 @@ public class ConversationService {
                 conversation.getId(),
                 conversation.getName(),
                 conversation.isGroup(),
-                conversation.getCreatedAt()
+                conversation.getCreatedAt(),
+                null
         );
 
         return ApiResponse.success("00", "Cập nhật cuộc trò chuyện thành công", dto);
     }
 
-    // Lưu trữ cuộc trò chuyện
     public void archiveConversation(String conversationId) {
         Optional<Conversation> conversationOpt = conversationRepository.findById(conversationId);
         if (conversationOpt.isPresent()) {
@@ -87,8 +84,15 @@ public class ConversationService {
         }
     }
 
-    // Lấy danh sách các nhóm từ người dùng (bao gồm nhóm người tạo và nhóm người tham gia)
-    public ApiResponse<List<ConversationResponse>> getConversationsByUser(String userId) {
+    public ApiResponse<List<ConversationResponse>> getGroupConversationsByUser(String userId) {
+        return getConversationsFiltered(userId, true);
+    }
+
+    public ApiResponse<List<ConversationResponse>> getOneToOneConversationsByUser(String userId) {
+        return getConversationsFiltered(userId, false);
+    }
+
+    private ApiResponse<List<ConversationResponse>> getConversationsFiltered(String userId, boolean isGroup) {
         Optional<User> optionalUser = userRepository.findById(userId);
         if (optionalUser.isEmpty()) {
             return ApiResponse.error("03", "Không tìm thấy người dùng: " + userId);
@@ -98,10 +102,10 @@ public class ConversationService {
 
         List<ConversationResponse> result = conversationMembers.stream()
                 .map(ConversationMember::getConversation)
+                .filter(c -> c.isGroup() == isGroup)
                 .distinct()
                 .map(conversation -> {
                     String name;
-
                     if (conversation.isGroup()) {
                         name = conversation.getName();
                     } else {
@@ -113,8 +117,7 @@ public class ConversationService {
                                 .orElse("Cuộc trò chuyện");
                     }
 
-                    // Lấy tin nhắn cuối cùng
-                    Message lastMessage = messageRepository.findTopByConversationIdOrderByCreatedAtDesc(conversation.getId().toString());
+                    Message lastMessage = messageRepository.findTopByConversationIdOrderByCreatedAtDesc(conversation.getId());
                     LastMessageInfo lastMessageInfo = null;
 
                     if (lastMessage != null) {
@@ -141,8 +144,6 @@ public class ConversationService {
         return ApiResponse.success("00", "Lấy danh sách cuộc trò chuyện thành công", result);
     }
 
-
-    // Tìm cuộc trò chuyện 1-1 giữa hai người
     public Optional<Conversation> findOneToOneConversation(String userId1, String userId2) {
         List<ConversationMember> membersUser1 = conversationMemberRepository.findByUserId(userId1);
 
@@ -160,7 +161,6 @@ public class ConversationService {
         return Optional.empty();
     }
 
-    // Tạo cuộc trò chuyện 1-1 nếu chưa có
     public Conversation getOrCreateOneToOneConversation(String userId1, String userId2) {
         Optional<Conversation> existing = findOneToOneConversation(userId1, userId2);
         if (existing.isPresent()) {
@@ -169,7 +169,7 @@ public class ConversationService {
 
         Conversation conversation = new Conversation();
         conversation.setGroup(false);
-        conversation.setName(null); // 1-1 không cần tên
+        conversation.setName(null);
         conversation.setCreatedBy(userId1);
         conversation.setCreatedAt(LocalDateTime.now());
 
@@ -189,5 +189,4 @@ public class ConversationService {
         if (duration.toDays() < 1) return duration.toHours() + " giờ trước";
         return duration.toDays() + " ngày trước";
     }
-
 }
