@@ -38,4 +38,6 @@ public class Conversation {
     @Column(nullable = false)
     private boolean isArchived = false;
 
+    private String avatarUrl;
+
 }

@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -70,6 +71,13 @@ public class ConversationController {
 
         // Trả về toàn bộ bao gồm cả nhóm và 1-1
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{id}/avatar")
+    public ResponseEntity<?> uploadGroupAvatar(@PathVariable String id,
+                                               @RequestParam("file") MultipartFile file) {
+        ApiResponse<String> response = conversationService.updateGroupAvatar(id, file);
+        return ResponseEntity.status(response.getStatus().isSuccess() ? 200 : 400).body(response);
     }
 
 

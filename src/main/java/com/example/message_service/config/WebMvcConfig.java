@@ -12,4 +12,5 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .addResourceHandler("/uploads/**")
                 .addResourceLocations("file:src/main/resources/static/uploads/");
     }
+
 }

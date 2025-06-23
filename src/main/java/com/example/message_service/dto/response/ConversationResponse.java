@@ -24,13 +24,18 @@ public class ConversationResponse {
 
     private LastMessageInfo lastMessage;
 
-    public ConversationResponse(String id, String name, boolean group, LocalDateTime createdAt) {
+    private String avatarUrl;
+
+    public ConversationResponse(String id, String name, boolean isGroup, String avatarUrl,
+                                LocalDateTime createdAt, LastMessageInfo lastMessage) {
         this.id = id;
         this.name = name;
-        this.group = group;
+        this.group = isGroup;
+        this.avatarUrl = avatarUrl;
         this.createdAt = createdAt;
-        this.lastMessage = null;
+        this.lastMessage = lastMessage;
     }
+
 
 }
 
