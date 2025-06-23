@@ -13,8 +13,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -90,47 +92,51 @@ public class ConversationService {
 
     // Lấy danh sách các nhóm từ người dùng (bao gồm nhóm người tạo và nhóm người tham gia)
     public ApiResponse<List<ConversationDTO>> getConversationsByUser(String userId) {
-        // 1. Kiểm tra người dùng có tồn tại
+        // 1. Kiểm tra người dùng
         Optional<User> optionalUser = userRepository.findById(userId);
         if (optionalUser.isEmpty()) {
             return ApiResponse.error("03", "Không tìm thấy người dùng: " + userId);
         }
 
-        // 2. Lấy tất cả các cuộc trò chuyện người này là thành viên
+        // 2. Lấy các conversationMember
         List<ConversationMember> conversationMembers = conversationMemberRepository.findByUserId(userId);
 
-        // 3. Lấy danh sách conversationId từ ConversationMember
-        List<String> memberConversationIds = conversationMembers.stream()
-                .map(member -> member.getConversation().getId())
-                .collect(Collectors.toList());
+        // 3. Lưu ID cuộc trò chuyện đã là thành viên (dùng Set cho hiệu năng)
+        Set<String> memberConversationIds = conversationMembers.stream()
+                .map(m -> m.getConversation().getId())
+                .collect(Collectors.toSet());
 
-        // 4. Lấy cuộc trò chuyện theo ID đã lấy và là nhóm
+        // 4. Danh sách nhóm người dùng là thành viên
+        Set<String> addedIds = new HashSet<>();
         List<ConversationDTO> memberGroups = conversationMembers.stream()
                 .map(ConversationMember::getConversation)
                 .filter(Conversation::isGroup)
-                .distinct()
+                .filter(c -> addedIds.add(c.getId()))
                 .map(c -> new ConversationDTO(
                         c.getId(),
                         c.getName(),
                         c.isGroup(),
                         c.getCreatedAt()
-                )).collect(Collectors.toList());
+                ))
+                .collect(Collectors.toList());
 
-        // 5. Lấy các cuộc trò chuyện do người này tạo (và là nhóm)
+        // 5. Danh sách nhóm do người dùng tạo nhưng chưa tham gia với tư cách member
         List<ConversationDTO> createdGroups = conversationRepository.findByCreatedBy(userId).stream()
                 .filter(Conversation::isGroup)
-                .filter(c -> !memberConversationIds.contains(c.getId())) // Tránh trùng nếu đã là member
+                .filter(c -> !memberConversationIds.contains(c.getId()))
                 .map(c -> new ConversationDTO(
                         c.getId(),
                         c.getName(),
                         c.isGroup(),
                         c.getCreatedAt()
-                )).collect(Collectors.toList());
+                ))
+                .collect(Collectors.toList());
 
-        // 6. Gộp danh sách nhóm đã tham gia + nhóm đã tạo
+        // 6. Gộp 2 danh sách
         memberGroups.addAll(createdGroups);
 
         return ApiResponse.success("00", "Lấy danh sách nhóm thành công", memberGroups);
     }
+
 
 }
