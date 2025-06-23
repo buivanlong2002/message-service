@@ -9,5 +9,4 @@ import java.util.UUID;
 @Getter
 public class GetConversationByUserRequest {
     private UUID userId;
-
 }

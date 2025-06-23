@@ -36,48 +36,56 @@ public class MessageService {
     @Autowired
     private MessageMapper messageMapper;
 
-    // Gửi tin nhắn mới
+    @Autowired
+    private ConversationService conversationService;
+
+    // Gửi tin nhắn mới (kể cả tạo mới conversation nếu cần)
     public ApiResponse<MessageResponse> sendMessage(SendMessageRequest request) {
         Message message = new Message();
-
         message.setId(UUID.randomUUID().toString());
 
-        // Lấy Conversation và Sender từ DB, kiểm tra tồn tại
-        Conversation conversation = conversationRepository.findById(request.getConversationId().toString())
-                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy cuộc trò chuyện"));
-
+        // Lấy người gửi
         User sender = userRepository.findById(request.getSenderId().toString())
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người gửi"));
+
+        Conversation conversation;
+
+        // Nếu có conversationId -> dùng
+        if (request.getConversationId() != null) {
+            conversation = conversationRepository.findById(request.getConversationId().toString())
+                    .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy cuộc trò chuyện"));
+        } else {
+            // Nếu không có conversationId -> kiểm tra hoặc tạo mới 1-1
+            if (request.getReceiverId() == null || request.getReceiverId().isBlank()) {
+                return ApiResponse.error("05", "Thiếu receiverId để tạo cuộc trò chuyện 1-1");
+            }
+            conversation = conversationService.getOrCreateOneToOneConversation(
+                    request.getSenderId().toString(), request.getReceiverId());
+        }
+
 
         message.setConversation(conversation);
         message.setSender(sender);
         message.setContent(request.getContent());
-
-        // Gán messageType, nếu trong request có thể thêm field để chọn type, còn không thì mặc định TEXT
         message.setMessageType(MessageType.TEXT);
+        message.setCreatedAt(LocalDateTime.now());
+        message.setEdited(false);
 
-        // Xử lý replyToMessage nếu có
-        if (request.getReplyToMessageId() != null) {
-            Message replyToMessage = messageRepository.findById(request.getReplyToMessageId().toString())
+        // Xử lý tin nhắn trả lời nếu có
+        if (request.getReplyToMessageId() != null && !request.getReplyToMessageId().isBlank()) {
+            Message replyTo = messageRepository.findById(request.getReplyToMessageId())
                     .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy tin nhắn để trả lời"));
-            message.setReplyTo(replyToMessage);
+            message.setReplyTo(replyTo);
         } else {
             message.setReplyTo(null);
         }
 
-        message.setCreatedAt(LocalDateTime.now());
-        message.setEdited(false);
-
         Message saved = messageRepository.save(message);
-
         MessageResponse dto = messageMapper.toMessageResponse(saved);
-
         return ApiResponse.success("00", "Gửi tin nhắn thành công", dto);
     }
 
-
-
-    // Lấy danh sách tin nhắn theo conversation
+    // Lấy danh sách tin nhắn theo cuộc trò chuyện
     public ApiResponse<List<MessageResponse>> getMessagesByConversation(String conversationId) {
         if (!conversationRepository.existsById(conversationId)) {
             return ApiResponse.error("01", "Không tìm thấy cuộc trò chuyện với ID: " + conversationId);
