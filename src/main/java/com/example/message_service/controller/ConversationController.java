@@ -29,7 +29,7 @@ public class ConversationController {
             @RequestParam String name,
             @RequestParam String createdBy) {
 
-        Conversation conversation = conversationService.createConversation(name, createdBy);
+        Conversation conversation = conversationService.createGroupConversation(name, createdBy);
         return new ResponseEntity<>(conversation, HttpStatus.CREATED);
     }
 
@@ -62,22 +62,15 @@ public class ConversationController {
 
     // Lấy danh sách các nhóm từ người dùng (bao gồm nhóm người tạo và nhóm người tham gia)
     @GetMapping("/user/{userId}")
-    public ResponseEntity<ApiResponse<List<ConversationResponse>>> getGroupConversationsByUser(
+    public ResponseEntity<ApiResponse<List<ConversationResponse>>> getConversationsByUser(
             @PathVariable String userId) {
 
-        // Gọi service để lấy toàn bộ conversations liên quan
+        // Gọi service để lấy tất cả conversations của người dùng
         ApiResponse<List<ConversationResponse>> response = conversationService.getConversationsByUser(userId);
 
-        // Lọc chỉ lấy các nhóm (group = true)
-        List<ConversationResponse> groupConversations = response.getData().stream()
-                .filter(ConversationResponse::isGroup)
-                .toList();
-
-        // Trả về response mới với danh sách nhóm
-        ApiResponse<List<ConversationResponse>> filteredResponse =
-                ApiResponse.success("00", "Lấy danh sách nhóm thành công", groupConversations);
-
-        return ResponseEntity.ok(filteredResponse);
+        // Trả về toàn bộ bao gồm cả nhóm và 1-1
+        return ResponseEntity.ok(response);
     }
+
 
 }
