@@ -44,7 +44,8 @@ public class ConversationService {
         return savedConversation;
     }
 
-    // Cập nhật thông tin cuộc trò chuyện
+
+    // Thay đổi thông tin cuộc trò chuyện
     public ApiResponse<ConversationDTO> updateConversation(String conversationId, UpdateConversationRequest request) {
         Optional<Conversation> optionalConversation = conversationRepository.findById(conversationId);
         if (optionalConversation.isEmpty()) {
