@@ -29,7 +29,7 @@ public class ConversationController {
             @RequestParam String name,
             @RequestParam String createdBy) {
 
-        Conversation conversation = conversationService.createConversation(name, true, createdBy);
+        Conversation conversation = conversationService.createConversation(name, createdBy);
         return new ResponseEntity<>(conversation, HttpStatus.CREATED);
     }
 
