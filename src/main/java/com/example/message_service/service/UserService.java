@@ -55,9 +55,6 @@ public class UserService {
      * Đăng ký người dùng mới
      */
     public ApiResponse<String> registerUser(RegisterRequest request) {
-        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
-            return ApiResponse.error("01", "Username đã tồn tại");
-        }
 
         if (userRepository.findByPhoneNumber(request.getPhoneNumber()).isPresent()) {
             return ApiResponse.error("02", "Số điện thoại đã được sử dụng");
@@ -70,7 +67,6 @@ public class UserService {
         String encodedPassword = passwordEncoder.encode(request.getPassword());
 
         User user = new User();
-        user.setUsername(request.getUsername());
         user.setPassword(encodedPassword);
         user.setDisplayName(request.getDisplayName());
         user.setAvatarUrl(request.getAvatarUrl());

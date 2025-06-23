@@ -29,10 +29,10 @@ public class SecurityConfig {
      */
     @Bean
     public UserDetailsService userDetailsService() {
-        return username -> (org.springframework.security.core.userdetails.UserDetails) userRepository
-                .findByUsername(username)
+        return email -> (org.springframework.security.core.userdetails.UserDetails) userRepository
+                .findByEmail(email)
                 .orElseThrow(() ->
-                        new UsernameNotFoundException("User not found" + username));
+                        new UsernameNotFoundException("User not found" + email));
     }
 
     /**
