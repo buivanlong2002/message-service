@@ -1,4 +1,4 @@
-package com.example.message_service.dto;
+package com.example.message_service.dto.request;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class FriendRequestDTO {
+public class FriendRequestRequest {
     private String senderName;
     private LocalDateTime requestedAt;
 }

@@ -1,17 +1,21 @@
 package com.example.message_service.service;
 
 import com.example.message_service.dto.ApiResponse;
-import com.example.message_service.dto.ConversationDTO;
+import com.example.message_service.dto.response.ConversationResponse;
 import com.example.message_service.dto.request.UpdateConversationRequest;
+import com.example.message_service.dto.response.LastMessageInfo;
 import com.example.message_service.model.Conversation;
 import com.example.message_service.model.ConversationMember;
+import com.example.message_service.model.Message;
 import com.example.message_service.model.User;
 import com.example.message_service.repository.ConversationMemberRepository;
 import com.example.message_service.repository.ConversationRepository;
+import com.example.message_service.repository.MessageRepository;
 import com.example.message_service.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -31,6 +35,9 @@ public class ConversationService {
     @Autowired
     private ConversationMemberService conversationMemberService;
 
+    @Autowired
+    private MessageRepository messageRepository;
+
     //Tạo cuộc trò chuyện nhóm, thêm người tạo (role: "creator")
     public Conversation createConversation(String name, boolean isGroup, String createdBy) {
         Conversation conversation = new Conversation();
@@ -46,7 +53,7 @@ public class ConversationService {
 
 
     // Thay đổi thông tin cuộc trò chuyện
-    public ApiResponse<ConversationDTO> updateConversation(String conversationId, UpdateConversationRequest request) {
+    public ApiResponse<ConversationResponse> updateConversation(String conversationId, UpdateConversationRequest request) {
         Optional<Conversation> optionalConversation = conversationRepository.findById(conversationId);
         if (optionalConversation.isEmpty()) {
             return ApiResponse.error("04", "Không tìm thấy cuộc trò chuyện với ID: " + conversationId);
@@ -58,7 +65,7 @@ public class ConversationService {
 
         conversationRepository.save(conversation);
 
-        ConversationDTO dto = new ConversationDTO(
+        ConversationResponse dto = new ConversationResponse(
                 conversation.getId(),
                 conversation.getName(),
                 conversation.isGroup(),
@@ -81,42 +88,52 @@ public class ConversationService {
     }
 
     // Lấy danh sách các nhóm từ người dùng (bao gồm nhóm người tạo và nhóm người tham gia)
-    public ApiResponse<List<ConversationDTO>> getConversationsByUser(String userId) {
-        // 1. Kiểm tra người dùng có tồn tại
+    public ApiResponse<List<ConversationResponse>> getConversationsByUser(String userId) {
         Optional<User> optionalUser = userRepository.findById(userId);
         if (optionalUser.isEmpty()) {
             return ApiResponse.error("03", "Không tìm thấy người dùng: " + userId);
         }
 
-        // 2. Lấy tất cả các cuộc trò chuyện người này là thành viên
         List<ConversationMember> conversationMembers = conversationMemberRepository.findByUserId(userId);
 
-        // 3. Map sang DTO
-        List<ConversationDTO> result = conversationMembers.stream()
+        List<ConversationResponse> result = conversationMembers.stream()
                 .map(ConversationMember::getConversation)
                 .distinct()
                 .map(conversation -> {
                     String name;
 
                     if (conversation.isGroup()) {
-                        // Tên nhóm giữ nguyên
                         name = conversation.getName();
                     } else {
-                        // Với 1-1, lấy tên người còn lại
                         List<ConversationMember> members = conversationMemberRepository.findByConversationId(conversation.getId());
-
                         name = members.stream()
-                                .filter(m -> !m.getUser().getId().equals(userId)) // người còn lại
+                                .filter(m -> !m.getUser().getId().equals(userId))
                                 .map(m -> m.getUser().getDisplayName())
                                 .findFirst()
                                 .orElse("Cuộc trò chuyện");
                     }
 
-                    return new ConversationDTO(
+                    // Lấy tin nhắn cuối cùng
+                    Message lastMessage = messageRepository.findTopByConversationIdOrderByCreatedAtDesc(conversation.getId().toString());
+                    LastMessageInfo lastMessageInfo = null;
+
+                    if (lastMessage != null) {
+                        String senderName = lastMessage.getSender().getDisplayName();
+                        String timeAgo = getTimeAgo(lastMessage.getCreatedAt());
+
+                        lastMessageInfo = new LastMessageInfo(
+                                lastMessage.getContent(),
+                                senderName,
+                                timeAgo
+                        );
+                    }
+
+                    return new ConversationResponse(
                             conversation.getId(),
                             name,
                             conversation.isGroup(),
-                            conversation.getCreatedAt()
+                            conversation.getCreatedAt(),
+                            lastMessageInfo
                     );
                 })
                 .collect(Collectors.toList());
@@ -163,4 +180,14 @@ public class ConversationService {
 
         return saved;
     }
+
+    private String getTimeAgo(LocalDateTime time) {
+        Duration duration = Duration.between(time, LocalDateTime.now());
+
+        if (duration.toMinutes() < 1) return "Vừa xong";
+        if (duration.toHours() < 1) return duration.toMinutes() + " phút trước";
+        if (duration.toDays() < 1) return duration.toHours() + " giờ trước";
+        return duration.toDays() + " ngày trước";
+    }
+
 }

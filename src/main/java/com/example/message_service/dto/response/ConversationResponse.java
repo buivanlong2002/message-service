@@ -1,4 +1,4 @@
-package com.example.message_service.dto;
+package com.example.message_service.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.Column;
@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class ConversationDTO {
+public class ConversationResponse {
     private String id;
 
     private String name;
@@ -21,5 +21,16 @@ public class ConversationDTO {
     private boolean group;
 
     private LocalDateTime createdAt;
+
+    private LastMessageInfo lastMessage;
+
+    public ConversationResponse(String id, String name, boolean group, LocalDateTime createdAt) {
+        this.id = id;
+        this.name = name;
+        this.group = group;
+        this.createdAt = createdAt;
+        this.lastMessage = null;
+    }
+
 }
 

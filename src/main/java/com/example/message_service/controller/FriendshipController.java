@@ -1,9 +1,7 @@
 package com.example.message_service.controller;
 
 import com.example.message_service.dto.ApiResponse;
-import com.example.message_service.dto.FriendRequestDTO;
-import com.example.message_service.model.Friendship;
-import com.example.message_service.model.User;
+import com.example.message_service.dto.request.FriendRequestRequest;
 import com.example.message_service.service.FriendshipService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -11,7 +9,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("api/friendships")
@@ -70,8 +67,8 @@ public class FriendshipController {
     }
 
     @GetMapping("/friend-requests")
-    public ResponseEntity<ApiResponse<List<FriendRequestDTO>>> getPendingFriendRequests(@RequestParam String userId) {
-        ApiResponse<List<FriendRequestDTO>> response = friendshipService.getPendingRequests(userId);
+    public ResponseEntity<ApiResponse<List<FriendRequestRequest>>> getPendingFriendRequests(@RequestParam String userId) {
+        ApiResponse<List<FriendRequestRequest>> response = friendshipService.getPendingRequests(userId);
         return ResponseEntity.ok(response);
     }
 
