@@ -39,7 +39,7 @@ public class ConversationService {
     private MessageRepository messageRepository;
 
     // Tạo nhóm trò chuyện (isGroup = true)
-    public Conversation createGroupConversation(String name, String createdBy) {
+    public Conversation createConversation(String name, String createdBy) {
         Conversation conversation = new Conversation();
         conversation.setName(name);
         conversation.setGroup(true);
@@ -63,25 +63,6 @@ public class ConversationService {
         conversation.setCreatedAt(LocalDateTime.now());
 
         Conversation saved = conversationRepository.save(conversation);
-        conversationMemberService.addMemberToConversation(saved, senderId, "member");
-        conversationMemberService.addMemberToConversation(saved, receiverId, "member");
-
-        return saved;
-    }
-
-    // Tạo nhóm trò chuyện từ một senderId gửi đến receiverId (luôn là group)
-    public Conversation createDynamicGroupFromMessage(String senderId, String receiverId) {
-        Optional<User> senderOpt = userRepository.findById(senderId);
-        if (senderOpt.isEmpty()) throw new RuntimeException("Sender not found");
-
-        String groupName = senderOpt.get().getDisplayName();
-        Conversation group = new Conversation();
-        group.setGroup(true);
-        group.setName(groupName);
-        group.setCreatedBy(senderId);
-        group.setCreatedAt(LocalDateTime.now());
-
-        Conversation saved = conversationRepository.save(group);
         conversationMemberService.addMemberToConversation(saved, senderId, "member");
         conversationMemberService.addMemberToConversation(saved, receiverId, "member");
 
@@ -141,15 +122,25 @@ public class ConversationService {
 
     private ConversationResponse toConversationResponse(Conversation conversation, String requesterId) {
         String name;
+        List<ConversationMember> members = conversationMemberRepository.findByConversationId(conversation.getId());
+
         if (conversation.isGroup()) {
             name = conversation.getName();
         } else {
-            List<ConversationMember> members = conversationMemberRepository.findByConversationId(conversation.getId());
-            name = members.stream()
-                    .filter(m -> !m.getUser().getId().equals(requesterId))
-                    .map(m -> m.getUser().getDisplayName())
-                    .findFirst()
-                    .orElse("Cuộc trò chuyện");
+            if (requesterId == null) {
+                // fallback nếu không biết người gọi là ai
+                name = members.stream()
+                        .map(m -> m.getUser().getDisplayName())
+                        .findFirst()
+                        .orElse("Cuộc trò chuyện");
+            } else {
+                // lấy tên người còn lại
+                name = members.stream()
+                        .filter(m -> !m.getUser().getId().equals(requesterId))
+                        .map(m -> m.getUser().getDisplayName())
+                        .findFirst()
+                        .orElse("Cuộc trò chuyện");
+            }
         }
 
         Message lastMessage = messageRepository.findTopByConversationIdOrderByCreatedAtDesc(conversation.getId());
@@ -170,6 +161,7 @@ public class ConversationService {
                 lastMessageInfo
         );
     }
+
 
     private String getTimeAgo(LocalDateTime createdAt) {
         Duration duration = Duration.between(createdAt, LocalDateTime.now());
