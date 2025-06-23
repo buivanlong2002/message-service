@@ -38,7 +38,6 @@ public class ConversationService {
     @Autowired
     private MessageRepository messageRepository;
 
-    // Tạo nhóm trò chuyện (isGroup = true)
     public Conversation createGroupConversation(String name, String createdBy) {
         Conversation conversation = new Conversation();
         conversation.setName(name);
@@ -51,7 +50,6 @@ public class ConversationService {
         return saved;
     }
 
-    // Tạo hoặc lấy cuộc trò chuyện 1-1
     public Conversation getOrCreateOneToOneConversation(String senderId, String receiverId) {
         Optional<Conversation> existing = findOneToOneConversation(senderId, receiverId);
         if (existing.isPresent()) return existing.get();
@@ -69,7 +67,6 @@ public class ConversationService {
         return saved;
     }
 
-    // Tạo nhóm trò chuyện từ một senderId gửi đến receiverId (luôn là group)
     public Conversation createDynamicGroupFromMessage(String senderId, String receiverId) {
         Optional<User> senderOpt = userRepository.findById(senderId);
         if (senderOpt.isEmpty()) throw new RuntimeException("Sender not found");
@@ -123,6 +120,11 @@ public class ConversationService {
                 .filter(Objects::nonNull)
                 .distinct()
                 .map(conv -> toConversationResponse(conv, userId))
+                .sorted((a, b) -> {
+                    LocalDateTime timeA = a.getLastMessage() != null ? a.getLastMessage().getCreatedAt() : a.getCreatedAt();
+                    LocalDateTime timeB = b.getLastMessage() != null ? b.getLastMessage().getCreatedAt() : b.getCreatedAt();
+                    return timeB.compareTo(timeA);
+                })
                 .collect(Collectors.toList());
 
         return ApiResponse.success("00", "Lấy danh sách cuộc trò chuyện thành công", responses);
@@ -167,7 +169,8 @@ public class ConversationService {
             lastMessageInfo = new LastMessageInfo(
                     lastMessage.getContent(),
                     lastMessage.getSender().getDisplayName(),
-                    getTimeAgo(lastMessage.getCreatedAt())
+                    getTimeAgo(lastMessage.getCreatedAt()),
+                    lastMessage.getCreatedAt()
             );
         }
 
