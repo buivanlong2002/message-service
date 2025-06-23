@@ -50,7 +50,7 @@ public class ConversationController {
     }
 
     // Lấy danh sách các nhóm từ người dùng (bao gồm nhóm người tạo và nhóm người tham gia)
-    @GetMapping("/user/{userId}/conversations")
+    @GetMapping("/user/{userId}")
     public ResponseEntity<ApiResponse<List<ConversationDTO>>> getGroupConversationsByUser(
             @PathVariable String userId) {
 
