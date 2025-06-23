@@ -7,7 +7,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface UserRepository extends JpaRepository<User, String> {
-    Optional<User> findByUsername(String username);  // Tìm theo tên đăng nhập
     Optional<User> findByEmail(String email);  // Tìm theo email
     Optional<User> findByPhoneNumber(String phoneNumber);  // Tìm theo số điện thoại
 }

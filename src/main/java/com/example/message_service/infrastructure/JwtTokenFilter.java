@@ -52,13 +52,13 @@ public class JwtTokenFilter extends OncePerRequestFilter {
             }
 
             final String token = authorizationHeader.substring(7);
-            final String username = jwtTokenUtil.extractUsername(token);
+            final String email = jwtTokenUtil.extractUsername(token);
 
-            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+            if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
                 if (jwtTokenUtil.validateToken(token, userDetails)
-                        && redisToken.isTokenValid(username, token)) {
+                        && redisToken.isTokenValid(email, token)) {
 
                     UsernamePasswordAuthenticationToken authentication =
                             new UsernamePasswordAuthenticationToken(

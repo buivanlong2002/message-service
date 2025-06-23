@@ -16,30 +16,6 @@ import java.util.UUID;
 @Table(name = "users")
 @Data
 public class User implements UserDetails {
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of();
-    }
-
-    @Override
-    public boolean isAccountNonExpired() {
-        return UserDetails.super.isAccountNonExpired();
-    }
-
-    @Override
-    public boolean isAccountNonLocked() {
-        return UserDetails.super.isAccountNonLocked();
-    }
-
-    @Override
-    public boolean isCredentialsNonExpired() {
-        return UserDetails.super.isCredentialsNonExpired();
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return UserDetails.super.isEnabled();
-    }
 
     @Id
     private String id;
@@ -49,9 +25,7 @@ public class User implements UserDetails {
         this.id = UUID.randomUUID().toString();
     }
 
-    @Column(unique = true, nullable = false)
-    private String username;
-
+    @Column(nullable = false)
     private String password;
 
     private String displayName;
@@ -61,7 +35,7 @@ public class User implements UserDetails {
     @Column(unique = true)
     private String phoneNumber;
 
-    @Column(unique = true)
+    @Column(unique = true, nullable = false)
     private String email;
 
     private String status = "active";
@@ -71,4 +45,36 @@ public class User implements UserDetails {
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+    // Spring Security dùng phương thức này để lấy "username"
+    // Bạn trả về email để dùng email đăng nhập
+    @Override
+    public String getUsername() {
+        return this.email;
+    }
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return List.of(); // hoặc return roles nếu có
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return true; // tùy hệ thống có kiểm tra hay không
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return this.status.equalsIgnoreCase("active");
+    }
 }
