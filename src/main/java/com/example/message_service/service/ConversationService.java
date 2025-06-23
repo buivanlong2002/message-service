@@ -13,8 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -24,35 +23,28 @@ public class ConversationService {
     private ConversationRepository conversationRepository;
 
     @Autowired
-    private ConversationMemberRepository conversationMemberRepository; // Để truy vấn các thành viên trong cuộc trò chuyện
+    private ConversationMemberRepository conversationMemberRepository;
 
     @Autowired
-    private UserRepository userRepository; // Để kiểm tra người dùng
+    private UserRepository userRepository;
 
     @Autowired
     private ConversationMemberService conversationMemberService;
 
-
-    // Tạo cuộc trò chuyện và thêm người tạo làm thành viên (vai trò "creator")
+    //Tạo cuộc trò chuyện nhóm, thêm người tạo (role: "creator")
     public Conversation createConversation(String name, boolean isGroup, String createdBy) {
-        // Tạo đối tượng Conversation
         Conversation conversation = new Conversation();
         conversation.setName(name);
         conversation.setGroup(isGroup);
         conversation.setCreatedBy(createdBy);
         conversation.setCreatedAt(LocalDateTime.now());
 
-        // Lưu cuộc trò chuyện vào DB
         Conversation savedConversation = conversationRepository.save(conversation);
-
-        //Thêm người tạo vào danh sách thành viên nếu chưa có
         conversationMemberService.addCreatorToConversation(savedConversation);
-
         return savedConversation;
     }
 
-
-    // Thay đổi thông tin cuộc trò chuyện
+    // Cập nhật thông tin cuộc trò chuyện
     public ApiResponse<ConversationDTO> updateConversation(String conversationId, UpdateConversationRequest request) {
         Optional<Conversation> optionalConversation = conversationRepository.findById(conversationId);
         if (optionalConversation.isEmpty()) {
@@ -65,7 +57,6 @@ public class ConversationService {
 
         conversationRepository.save(conversation);
 
-        // Map sang DTO
         ConversationDTO dto = new ConversationDTO(
                 conversation.getId(),
                 conversation.getName(),
@@ -76,7 +67,7 @@ public class ConversationService {
         return ApiResponse.success("00", "Cập nhật cuộc trò chuyện thành công", dto);
     }
 
-    // Lưu cuộc trò chuyện đã lưu trữ (archived)
+    // Lưu trữ cuộc trò chuyện
     public void archiveConversation(String conversationId) {
         Optional<Conversation> conversationOpt = conversationRepository.findById(conversationId);
         if (conversationOpt.isPresent()) {
@@ -99,38 +90,76 @@ public class ConversationService {
         // 2. Lấy tất cả các cuộc trò chuyện người này là thành viên
         List<ConversationMember> conversationMembers = conversationMemberRepository.findByUserId(userId);
 
-        // 3. Lấy danh sách conversationId từ ConversationMember
-        List<String> memberConversationIds = conversationMembers.stream()
-                .map(member -> member.getConversation().getId())
+        // 3. Map sang DTO
+        List<ConversationDTO> result = conversationMembers.stream()
+                .map(ConversationMember::getConversation)
+                .distinct()
+                .map(conversation -> {
+                    String name;
+
+                    if (conversation.isGroup()) {
+                        // Tên nhóm giữ nguyên
+                        name = conversation.getName();
+                    } else {
+                        // Với 1-1, lấy tên người còn lại
+                        List<ConversationMember> members = conversationMemberRepository.findByConversationId(conversation.getId());
+
+                        name = members.stream()
+                                .filter(m -> !m.getUser().getId().equals(userId)) // người còn lại
+                                .map(m -> m.getUser().getDisplayName())
+                                .findFirst()
+                                .orElse("Cuộc trò chuyện");
+                    }
+
+                    return new ConversationDTO(
+                            conversation.getId(),
+                            name,
+                            conversation.isGroup(),
+                            conversation.getCreatedAt()
+                    );
+                })
                 .collect(Collectors.toList());
 
-        // 4. Lấy cuộc trò chuyện theo ID đã lấy và là nhóm
-        List<ConversationDTO> memberGroups = conversationMembers.stream()
-                .map(ConversationMember::getConversation)
-                .filter(Conversation::isGroup)
-                .distinct()
-                .map(c -> new ConversationDTO(
-                        c.getId(),
-                        c.getName(),
-                        c.isGroup(),
-                        c.getCreatedAt()
-                )).collect(Collectors.toList());
-
-        // 5. Lấy các cuộc trò chuyện do người này tạo (và là nhóm)
-        List<ConversationDTO> createdGroups = conversationRepository.findByCreatedBy(userId).stream()
-                .filter(Conversation::isGroup)
-                .filter(c -> !memberConversationIds.contains(c.getId())) // Tránh trùng nếu đã là member
-                .map(c -> new ConversationDTO(
-                        c.getId(),
-                        c.getName(),
-                        c.isGroup(),
-                        c.getCreatedAt()
-                )).collect(Collectors.toList());
-
-        // 6. Gộp danh sách nhóm đã tham gia + nhóm đã tạo
-        memberGroups.addAll(createdGroups);
-
-        return ApiResponse.success("00", "Lấy danh sách nhóm thành công", memberGroups);
+        return ApiResponse.success("00", "Lấy danh sách cuộc trò chuyện thành công", result);
     }
 
+
+    // Tìm cuộc trò chuyện 1-1 giữa hai người
+    public Optional<Conversation> findOneToOneConversation(String userId1, String userId2) {
+        List<ConversationMember> membersUser1 = conversationMemberRepository.findByUserId(userId1);
+
+        for (ConversationMember member : membersUser1) {
+            Conversation conversation = member.getConversation();
+            if (!conversation.isGroup()) {
+                List<ConversationMember> members = conversationMemberRepository.findByConversationId(conversation.getId());
+                if (members.size() == 2 &&
+                        members.stream().anyMatch(m -> m.getUser().getId().equals(userId2))) {
+                    return Optional.of(conversation);
+                }
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    // Tạo cuộc trò chuyện 1-1 nếu chưa có
+    public Conversation getOrCreateOneToOneConversation(String userId1, String userId2) {
+        Optional<Conversation> existing = findOneToOneConversation(userId1, userId2);
+        if (existing.isPresent()) {
+            return existing.get();
+        }
+
+        Conversation conversation = new Conversation();
+        conversation.setGroup(false);
+        conversation.setName(null); // 1-1 không cần tên
+        conversation.setCreatedBy(userId1);
+        conversation.setCreatedAt(LocalDateTime.now());
+
+        Conversation saved = conversationRepository.save(conversation);
+
+        conversationMemberService.addMemberToConversation(saved, userId1, "member");
+        conversationMemberService.addMemberToConversation(saved, userId2, "member");
+
+        return saved;
+    }
 }

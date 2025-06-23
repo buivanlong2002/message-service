@@ -12,8 +12,7 @@ import java.util.UUID;
 public class SendMessageRequest {
     private UUID conversationId;
     private UUID senderId;
+    private String receiverId;
     private String content;
     private String replyToMessageId;
-
-    // Getters and Setters
 }

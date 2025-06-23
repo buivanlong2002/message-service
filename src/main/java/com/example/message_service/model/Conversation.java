@@ -23,7 +23,7 @@ public class Conversation {
         this.id = UUID.randomUUID().toString();
     }
 
-    @Column(nullable = false)
+    @Column(name = "name")
     private String name;
 
     @Column(nullable = false)
