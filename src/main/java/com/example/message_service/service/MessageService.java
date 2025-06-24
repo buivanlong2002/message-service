@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -98,7 +100,9 @@ public class MessageService {
                         Path filePath = uploadPath.resolve(fileName);
                         Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
-                        String fileUrl = "/uploads/file/" + fileName;
+                        String encodedName = URLEncoder.encode(fileName, StandardCharsets.UTF_8);
+                        encodedName = encodedName.replace("+", "%20");  // ✅ Rất quan trọng
+                        String fileUrl = "/uploads/file/" + encodedName;
 
                         Attachment attachment = new Attachment();
                         attachment.setId(UUID.randomUUID().toString());
