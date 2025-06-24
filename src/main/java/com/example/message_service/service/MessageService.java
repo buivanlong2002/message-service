@@ -19,6 +19,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -46,8 +47,8 @@ public class MessageService {
     public ApiResponse<MessageResponse> sendMessage(
             String senderId,
             String conversationId,
-            String receiverId, // chỉ dùng khi chưa có conversationId
-            MultipartFile file, // optional
+            String receiverId, // dùng khi chưa có conversationId
+            MultipartFile[] files, // gửi nhiều file
             MessageType messageType,
             String content,
             String replyToId
@@ -78,34 +79,40 @@ public class MessageService {
         message.setCreatedAt(LocalDateTime.now());
         message.setEdited(false);
 
-        // 4. Xử lý trả lời nếu có
+        // 4. Xử lý reply nếu có
         if (replyToId != null && !replyToId.isBlank()) {
             Message replyTo = messageRepository.findById(replyToId)
                     .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy tin nhắn để trả lời"));
             message.setReplyTo(replyTo);
         }
 
-        // 5. Xử lý file nếu có
-        if (file != null && !file.isEmpty()) {
+        // 5. Xử lý nhiều file nếu có
+        List<Attachment> attachments = new ArrayList<>();
+        if (files != null && files.length > 0) {
+            Path uploadPath = Paths.get("src/main/resources/static/uploads/file");
             try {
-                String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
-                Path uploadPath = Paths.get("src/main/resources/static/uploads/file");
                 Files.createDirectories(uploadPath);
+                for (MultipartFile file : files) {
+                    if (!file.isEmpty()) {
+                        String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
+                        Path filePath = uploadPath.resolve(fileName);
+                        Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
-                Path filePath = uploadPath.resolve(fileName);
-                Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+                        String fileUrl = "/uploads/file/" + fileName;
 
-                String fileUrl = "/uploads/file/" + fileName;
+                        Attachment attachment = new Attachment();
+                        attachment.setId(UUID.randomUUID().toString());
+                        attachment.setFileUrl(fileUrl);
+                        attachment.setFileType(file.getContentType());
+                        attachment.setFileSize(file.getSize());
+                        attachment.setMessage(message);
 
-                Attachment attachment = new Attachment();
-                attachment.setId(UUID.randomUUID().toString());
-                attachment.setFileUrl(fileUrl);
-                attachment.setFileType(file.getContentType());
-                attachment.setFileSize(file.getSize());
-                attachment.setMessage(message);
-
-                message.setAttachments(List.of(attachment));
-
+                        attachments.add(attachment);
+                    }
+                }
+                if (!attachments.isEmpty()) {
+                    message.setAttachments(attachments);
+                }
             } catch (IOException e) {
                 return ApiResponse.error("99", "Lỗi khi upload file: " + e.getMessage());
             }
@@ -115,6 +122,7 @@ public class MessageService {
         Message saved = messageRepository.save(message);
         return ApiResponse.success("00", "Gửi tin nhắn thành công", messageMapper.toMessageResponse(saved));
     }
+
 
 
 

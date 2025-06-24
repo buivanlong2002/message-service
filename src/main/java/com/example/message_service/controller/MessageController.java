@@ -39,13 +39,19 @@ public class MessageController {
             @RequestParam(required = false) String content,
             @RequestParam MessageType messageType,
             @RequestParam(required = false) String replyToId,
-            @RequestPart(required = false) MultipartFile file
+            @RequestPart(required = false) MultipartFile[] files
     ) {
         return messageService.sendMessage(
-                senderId, conversationId, receiverId,
-                file, messageType, content, replyToId
+                senderId,
+                conversationId,
+                receiverId,
+                files,
+                messageType,
+                content,
+                replyToId
         );
     }
+
 
     // Lấy tất cả tin nhắn trong một cuộc trò chuyện
     @PostMapping("/get-by-conversation")
