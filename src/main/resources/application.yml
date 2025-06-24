@@ -1,6 +1,9 @@
 spring:
   application:
     name: message-service
+  web:
+    resources:
+      static-locations: file:uploads/
 
   jackson:
     time-zone: Asia/Ho_Chi_Minh
@@ -42,3 +45,7 @@ jwt:
 
 api:
   prefix: api
+
+user:
+  avatar:
+    upload-dir: uploads/avatar

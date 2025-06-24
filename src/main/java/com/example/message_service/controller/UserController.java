@@ -20,7 +20,7 @@ public class UserController {
 
     private final UserRepository userRepository;
 
-    @Value("${user.avatar.upload-dir:src/main/resources/static/uploads}")
+    @Value("${user.avatar.upload-dir}")
     private String uploadDir;
 
     @PostMapping("/avatar")
@@ -39,7 +39,7 @@ public class UserController {
             Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
             // Lưu URL tương đối vào DB (ví dụ: /uploads/...)
-            String avatarUrl = "/uploads/" + fileName;
+            String avatarUrl = "/uploads/avatar/" + fileName;
             user.setAvatarUrl(avatarUrl);
             userRepository.save(user);
 

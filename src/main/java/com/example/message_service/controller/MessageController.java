@@ -5,10 +5,17 @@ import com.example.message_service.dto.request.EditMessageRequest;
 import com.example.message_service.dto.request.SendMessageRequest;
 import com.example.message_service.dto.response.MessageResponse;
 import com.example.message_service.model.Message;
+import com.example.message_service.model.MessageType;
+import com.example.message_service.model.User;
 import com.example.message_service.service.MessageService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,6 +35,22 @@ public class MessageController {
     public ApiResponse<MessageResponse> sendMessage(@RequestBody SendMessageRequest request) {
         return messageService.sendMessage(request);
     }
+
+    // Gửi tin nhắn kèm file hoặc ảnh
+    @PostMapping(value = "/send-with-file", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<MessageResponse> sendWithAttachment(
+            @RequestParam String senderId,
+            @RequestParam String conversationId,
+            @RequestParam(required = false) String content,
+            @RequestParam MessageType messageType, // IMAGE, FILE, ...
+            @RequestParam(required = false) String replyToId,
+            @RequestPart MultipartFile file
+    ) {
+        return messageService.sendMessageWithAttachment(
+                senderId, conversationId, file, messageType, content, replyToId
+        );
+    }
+
 
     // Lấy tất cả tin nhắn trong một cuộc trò chuyện
     @PostMapping("/get-by-conversation")

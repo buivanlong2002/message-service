@@ -1,10 +1,12 @@
 package com.example.message_service.dto.response;
 
+import com.example.message_service.model.Attachment;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @AllArgsConstructor
@@ -18,4 +20,6 @@ public class MessageResponse {
     private LocalDateTime createdAt;
     private String replyToId;
     private boolean edited;
+
+    private List<Attachment> attachments;
 }
