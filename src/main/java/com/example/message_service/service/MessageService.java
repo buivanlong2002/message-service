@@ -4,17 +4,20 @@ import com.example.message_service.dto.ApiResponse;
 import com.example.message_service.dto.request.SendMessageRequest;
 import com.example.message_service.dto.response.MessageResponse;
 import com.example.message_service.mapper.MessageMapper;
-import com.example.message_service.model.Conversation;
-import com.example.message_service.model.Message;
-import com.example.message_service.model.MessageType;
-import com.example.message_service.model.User;
+import com.example.message_service.model.*;
 import com.example.message_service.repository.ConversationRepository;
 import com.example.message_service.repository.MessageRepository;
 import com.example.message_service.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -84,6 +87,74 @@ public class MessageService {
         MessageResponse dto = messageMapper.toMessageResponse(saved);
         return ApiResponse.success("00", "Gửi tin nhắn thành công", dto);
     }
+
+    public ApiResponse<MessageResponse> sendMessageWithAttachment(
+            String senderId,
+            String conversationId,
+            MultipartFile file,
+            MessageType messageType,
+            String content,
+            String replyToId
+    ) {
+        // 1. Xác thực người gửi
+        User sender = userRepository.findById(senderId)
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người gửi"));
+
+        // 2. Xác thực cuộc trò chuyện
+        Conversation conversation = conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy cuộc trò chuyện"));
+
+        // 3. Tạo mới tin nhắn
+        Message message = new Message();
+        message.setId(UUID.randomUUID().toString());
+        message.setSender(sender);
+        message.setConversation(conversation);
+        message.setMessageType(messageType);
+        message.setContent(content != null ? content : ""); // đảm bảo không null
+        message.setCreatedAt(LocalDateTime.now());
+        message.setEdited(false);
+
+        // 4. Nếu có tin nhắn được reply
+        if (replyToId != null && !replyToId.isBlank()) {
+            Message replyTo = messageRepository.findById(replyToId)
+                    .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy tin nhắn để trả lời"));
+            message.setReplyTo(replyTo);
+        }
+
+        // 5. Nếu có file đính kèm
+        if (file != null && !file.isEmpty()) {
+            try {
+                String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
+                Path uploadPath = Paths.get("uploads/file");
+                Files.createDirectories(uploadPath);
+
+                Path filePath = uploadPath.resolve(fileName);
+                Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+                String fileUrl = "/file/" + fileName;
+
+                // Tạo attachment và gắn vào message
+                Attachment attachment = new Attachment();
+                attachment.setId(UUID.randomUUID().toString());
+                attachment.setFileUrl(fileUrl);
+                attachment.setFileType(file.getContentType());
+                attachment.setFileSize(file.getSize());
+                attachment.setMessage(message);
+
+                message.setAttachments(List.of(attachment));
+
+            } catch (IOException e) {
+                return ApiResponse.error("99", "Lỗi khi upload file: " + e.getMessage());
+            }
+        }
+
+        // 6. Lưu message (cascade sẽ lưu cả Attachment nếu cấu hình đúng)
+        Message saved = messageRepository.save(message);
+
+        return ApiResponse.success("00", "Gửi tin nhắn có file thành công", messageMapper.toMessageResponse(saved));
+    }
+
+
 
     // Lấy danh sách tin nhắn theo cuộc trò chuyện
     public ApiResponse<List<MessageResponse>> getMessagesByConversation(String conversationId) {

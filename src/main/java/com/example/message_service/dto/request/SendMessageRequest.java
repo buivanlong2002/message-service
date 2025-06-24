@@ -1,5 +1,6 @@
 package com.example.message_service.dto.request;
 
+import com.example.message_service.model.MessageType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -14,5 +15,6 @@ public class SendMessageRequest {
     private UUID senderId;
     private String receiverId;
     private String content;
+    private MessageType messageType;
     private String replyToMessageId;
 }

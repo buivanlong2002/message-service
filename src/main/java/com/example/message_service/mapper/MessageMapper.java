@@ -16,7 +16,8 @@ public class MessageMapper {
                 message.getMessageType().name(),
                 message.getCreatedAt(),
                 message.getReplyTo() != null ? message.getReplyTo().getId() : null,
-                message.isEdited()
+                message.isEdited(),
+                message.getAttachments()
         );
     }
 }

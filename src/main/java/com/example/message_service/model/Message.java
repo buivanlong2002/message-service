@@ -5,9 +5,11 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.awt.*;
+import java.util.List;
+import java.util.ArrayList;
 import java.time.LocalDateTime;
 import java.util.UUID;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -45,4 +47,7 @@ public class Message {
 
     private boolean isEdited;  // Kiểm tra xem tin nhắn đã được chỉnh sửa chưa
 
+    //Thêm liên kết với Attachment
+    @OneToMany(mappedBy = "message", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Attachment> attachments = new ArrayList<>();
 }
