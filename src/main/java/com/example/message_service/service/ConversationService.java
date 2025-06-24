@@ -8,6 +8,10 @@ import com.example.message_service.model.*;
 import com.example.message_service.repository.*;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -153,6 +157,39 @@ public class ConversationService {
                 })
                 .findFirst();
     }
+
+    public ApiResponse<List<ConversationResponse>> getConversationsByUserPaged(String userId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+
+        Page<Conversation> conversationPage = conversationRepository.findByMembers_Id(userId, pageable);
+
+        List<ConversationResponse> responseList = conversationPage.getContent().stream().map(conversation -> {
+            // Tìm tin nhắn cuối
+            Message lastMessage = messageRepository.findTopByConversationIdOrderByCreatedAtDesc(conversation.getId());
+
+            LastMessageInfo lastMessageInfo = null;
+            if (lastMessage != null) {
+                lastMessageInfo = new LastMessageInfo(
+                        lastMessage.getContent(),
+                        lastMessage.getSender().getDisplayName(),
+                        getTimeAgo(lastMessage.getCreatedAt()),
+                        lastMessage.getCreatedAt()
+                );
+            }
+
+            return new ConversationResponse(
+                    conversation.getId(),
+                    conversation.getName(),
+                    conversation.isGroup(),
+                    conversation.getAvatarUrl(),
+                    conversation.getCreatedAt(),
+                    lastMessageInfo
+            );
+        }).collect(Collectors.toList());
+
+        return ApiResponse.success("00", "Lấy danh sách nhóm thành công", responseList);
+    }
+
 
     private ConversationResponse toConversationResponse(Conversation conversation, String requesterId, Message lastMessage) {
         String name;

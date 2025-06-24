@@ -1,6 +1,8 @@
 package com.example.message_service.repository;
 
 import com.example.message_service.model.Message;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -16,5 +18,8 @@ public interface MessageRepository extends JpaRepository<Message, String> {
     Optional<Message> findByIdAndConversationId(String id, String conversationId);  // Lấy tin nhắn theo ID và cuộc trò chuyện
 
     List<Message> findBySenderIdAndConversationIdOrderByCreatedAtAsc(String senderId, String conversationId);  // Lấy tin nhắn của người gửi theo cuộc trò chuyện
+
+    Page<Message> findByConversationId(String conversationId, Pageable pageable);
+
 }
 
