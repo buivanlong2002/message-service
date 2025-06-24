@@ -89,13 +89,13 @@ public class MessageService {
         if (file != null && !file.isEmpty()) {
             try {
                 String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
-                Path uploadPath = Paths.get("uploads/file");
+                Path uploadPath = Paths.get("src/main/resources/static/uploads/file");
                 Files.createDirectories(uploadPath);
 
                 Path filePath = uploadPath.resolve(fileName);
                 Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
-                String fileUrl = "/file/" + fileName;
+                String fileUrl = "/uploads/file/" + fileName;
 
                 Attachment attachment = new Attachment();
                 attachment.setId(UUID.randomUUID().toString());
@@ -115,6 +115,7 @@ public class MessageService {
         Message saved = messageRepository.save(message);
         return ApiResponse.success("00", "Gửi tin nhắn thành công", messageMapper.toMessageResponse(saved));
     }
+
 
 
     // Lấy danh sách tin nhắn theo cuộc trò chuyện
