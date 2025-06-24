@@ -15,7 +15,7 @@ public interface ConversationMemberRepository extends JpaRepository<Conversation
 
     List<ConversationMember> findByUserId(String userId);
 
-    @Transactional                  // để k bị rollback
+    @Transactional
     void deleteByConversationIdAndUserId(String conversationId, String userId);
 
     boolean existsByConversationIdAndUserId(String conversationId, String userId);

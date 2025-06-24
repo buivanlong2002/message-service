@@ -91,9 +91,11 @@ public class JwtTokenFilter extends OncePerRequestFilter {
         // Bypass các request tài nguyên tĩnh
         String path = request.getServletPath();
 
-        if (path.startsWith("/css/") || path.startsWith("/js/") || path.startsWith("/images/") || path.equals("/favicon.ico")) {
+        if (path.startsWith("/css/") || path.startsWith("/js/") || path.startsWith("/images/")
+                || path.startsWith("/uploads/") || path.equals("/favicon.ico")) {
             return true;
         }
+
 
         for (Pair<String, String> bypassToken : bypassTokens) {
             if (path.contains(bypassToken.getFirst()) &&

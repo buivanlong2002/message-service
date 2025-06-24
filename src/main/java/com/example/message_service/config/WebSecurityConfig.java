@@ -38,7 +38,8 @@ public class WebSecurityConfig {
                                 "/css/**",               // CSS
                                 "/js/**",                // JS
                                 "/images/**",            // Ảnh nếu có
-                                "/favicon.ico"           // Icon trình duyệt
+                                "/favicon.ico",          // Icon trình duyệt
+                                "/uploads/**"            // ✅ Cho phép truy cập ảnh tĩnh
                         ).permitAll()
                         .requestMatchers(
                                 String.format("%s/auth/login", apiPrefix),
