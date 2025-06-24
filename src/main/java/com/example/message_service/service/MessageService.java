@@ -45,12 +45,14 @@ public class MessageService {
     @Autowired
     private ConversationService conversationService;
 
+    private static final long MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
+
     // Gửi tin nhắn mới (kể cả tạo mới conversation nếu cần)
     public ApiResponse<MessageResponse> sendMessage(
             String senderId,
             String conversationId,
-            String receiverId, // dùng khi chưa có conversationId
-            MultipartFile[] files, // gửi nhiều file
+            String receiverId,
+            MultipartFile[] files,
             MessageType messageType,
             String content,
             String replyToId
@@ -88,32 +90,53 @@ public class MessageService {
             message.setReplyTo(replyTo);
         }
 
-        // 5. Xử lý nhiều file nếu có
+        // 5. Xử lý file/image/video đính kèm
         List<Attachment> attachments = new ArrayList<>();
         if (files != null && files.length > 0) {
-            Path uploadPath = Paths.get("src/main/resources/static/uploads/file");
             try {
-                Files.createDirectories(uploadPath);
                 for (MultipartFile file : files) {
                     if (!file.isEmpty()) {
+                        // 🔎 Phân loại file theo loại MIME
+                        String contentType = file.getContentType();
+                        String folder = "file"; // mặc định
+                        if (contentType != null) {
+                            if (contentType.startsWith("image/")) {
+                                folder = "image";
+                            } else if (contentType.startsWith("video/")) {
+                                folder = "video";
+                            }
+                        }
+
+                        // Giới hạn kích thước video
+                        if ("video".equals(folder) && file.getSize() > MAX_VIDEO_SIZE) {
+                            return ApiResponse.error("06", "Video quá lớn. Tối đa 100MB.");
+                        }
+
+                        // Tạo thư mục upload nếu chưa có
+                        Path uploadPath = Paths.get("src/main/resources/static/uploads/" + folder);
+                        Files.createDirectories(uploadPath);
+
+                        // Lưu file vào ổ đĩa
                         String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
                         Path filePath = uploadPath.resolve(fileName);
                         Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
-                        String encodedName = URLEncoder.encode(fileName, StandardCharsets.UTF_8);
-                        encodedName = encodedName.replace("+", "%20");  // ✅ Rất quan trọng
-                        String fileUrl = "/uploads/file/" + encodedName;
+                        // Encode URL an toàn
+                        String encodedName = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");
+                        String fileUrl = "/uploads/" + folder + "/" + encodedName;
 
+                        // Tạo bản ghi attachment
                         Attachment attachment = new Attachment();
                         attachment.setId(UUID.randomUUID().toString());
                         attachment.setFileUrl(fileUrl);
-                        attachment.setFileType(file.getContentType());
+                        attachment.setFileType(contentType);
                         attachment.setFileSize(file.getSize());
                         attachment.setMessage(message);
 
                         attachments.add(attachment);
                     }
                 }
+
                 if (!attachments.isEmpty()) {
                     message.setAttachments(attachments);
                 }
@@ -126,8 +149,6 @@ public class MessageService {
         Message saved = messageRepository.save(message);
         return ApiResponse.success("00", "Gửi tin nhắn thành công", messageMapper.toMessageResponse(saved));
     }
-
-
 
 
     // Lấy danh sách tin nhắn theo cuộc trò chuyện

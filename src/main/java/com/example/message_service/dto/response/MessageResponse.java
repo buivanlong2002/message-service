@@ -22,4 +22,6 @@ public class MessageResponse {
     private boolean edited;
 
     private List<Attachment> attachments;
+
+    private String timeAgo;
 }
