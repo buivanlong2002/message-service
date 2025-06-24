@@ -31,26 +31,21 @@ public class MessageController {
     }
 
     // Gửi tin nhắn mới
-    @PostMapping("/send")
-    public ApiResponse<MessageResponse> sendMessage(@RequestBody SendMessageRequest request) {
-        return messageService.sendMessage(request);
-    }
-
-    // Gửi tin nhắn kèm file hoặc ảnh
-    @PostMapping(value = "/send-with-file", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ApiResponse<MessageResponse> sendWithAttachment(
+    @PostMapping(value = "/send", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<MessageResponse> sendMessage(
             @RequestParam String senderId,
-            @RequestParam String conversationId,
+            @RequestParam(required = false) String conversationId,
+            @RequestParam(required = false) String receiverId,
             @RequestParam(required = false) String content,
-            @RequestParam MessageType messageType, // IMAGE, FILE, ...
+            @RequestParam MessageType messageType,
             @RequestParam(required = false) String replyToId,
-            @RequestPart MultipartFile file
+            @RequestPart(required = false) MultipartFile file
     ) {
-        return messageService.sendMessageWithAttachment(
-                senderId, conversationId, file, messageType, content, replyToId
+        return messageService.sendMessage(
+                senderId, conversationId, receiverId,
+                file, messageType, content, replyToId
         );
     }
-
 
     // Lấy tất cả tin nhắn trong một cuộc trò chuyện
     @PostMapping("/get-by-conversation")

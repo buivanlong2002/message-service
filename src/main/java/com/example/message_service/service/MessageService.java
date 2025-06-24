@@ -43,55 +43,11 @@ public class MessageService {
     private ConversationService conversationService;
 
     // Gửi tin nhắn mới (kể cả tạo mới conversation nếu cần)
-    public ApiResponse<MessageResponse> sendMessage(SendMessageRequest request) {
-        Message message = new Message();
-        message.setId(UUID.randomUUID().toString());
-
-        // Lấy người gửi
-        User sender = userRepository.findById(request.getSenderId().toString())
-                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người gửi"));
-
-        Conversation conversation;
-
-        // Nếu có conversationId -> dùng
-        if (request.getConversationId() != null) {
-            conversation = conversationRepository.findById(request.getConversationId().toString())
-                    .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy cuộc trò chuyện"));
-        } else {
-            // Nếu không có conversationId -> kiểm tra hoặc tạo mới 1-1
-            if (request.getReceiverId() == null || request.getReceiverId().isBlank()) {
-                return ApiResponse.error("05", "Thiếu receiverId để tạo cuộc trò chuyện 1-1");
-            }
-            conversation = conversationService.getOrCreateOneToOneConversation(
-                    request.getSenderId().toString(), request.getReceiverId());
-        }
-
-
-        message.setConversation(conversation);
-        message.setSender(sender);
-        message.setContent(request.getContent());
-        message.setMessageType(MessageType.TEXT);
-        message.setCreatedAt(LocalDateTime.now());
-        message.setEdited(false);
-
-        // Xử lý tin nhắn trả lời nếu có
-        if (request.getReplyToMessageId() != null && !request.getReplyToMessageId().isBlank()) {
-            Message replyTo = messageRepository.findById(request.getReplyToMessageId())
-                    .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy tin nhắn để trả lời"));
-            message.setReplyTo(replyTo);
-        } else {
-            message.setReplyTo(null);
-        }
-
-        Message saved = messageRepository.save(message);
-        MessageResponse dto = messageMapper.toMessageResponse(saved);
-        return ApiResponse.success("00", "Gửi tin nhắn thành công", dto);
-    }
-
-    public ApiResponse<MessageResponse> sendMessageWithAttachment(
+    public ApiResponse<MessageResponse> sendMessage(
             String senderId,
             String conversationId,
-            MultipartFile file,
+            String receiverId, // chỉ dùng khi chưa có conversationId
+            MultipartFile file, // optional
             MessageType messageType,
             String content,
             String replyToId
@@ -100,28 +56,36 @@ public class MessageService {
         User sender = userRepository.findById(senderId)
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người gửi"));
 
-        // 2. Xác thực cuộc trò chuyện
-        Conversation conversation = conversationRepository.findById(conversationId)
-                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy cuộc trò chuyện"));
+        // 2. Lấy hoặc tạo cuộc trò chuyện
+        Conversation conversation;
+        if (conversationId != null && !conversationId.isBlank()) {
+            conversation = conversationRepository.findById(conversationId)
+                    .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy cuộc trò chuyện"));
+        } else {
+            if (receiverId == null || receiverId.isBlank()) {
+                return ApiResponse.error("05", "Thiếu receiverId để tạo cuộc trò chuyện 1-1");
+            }
+            conversation = conversationService.getOrCreateOneToOneConversation(senderId, receiverId);
+        }
 
-        // 3. Tạo mới tin nhắn
+        // 3. Tạo tin nhắn mới
         Message message = new Message();
         message.setId(UUID.randomUUID().toString());
         message.setSender(sender);
         message.setConversation(conversation);
         message.setMessageType(messageType);
-        message.setContent(content != null ? content : ""); // đảm bảo không null
+        message.setContent(content != null ? content : "");
         message.setCreatedAt(LocalDateTime.now());
         message.setEdited(false);
 
-        // 4. Nếu có tin nhắn được reply
+        // 4. Xử lý trả lời nếu có
         if (replyToId != null && !replyToId.isBlank()) {
             Message replyTo = messageRepository.findById(replyToId)
                     .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy tin nhắn để trả lời"));
             message.setReplyTo(replyTo);
         }
 
-        // 5. Nếu có file đính kèm
+        // 5. Xử lý file nếu có
         if (file != null && !file.isEmpty()) {
             try {
                 String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
@@ -133,7 +97,6 @@ public class MessageService {
 
                 String fileUrl = "/file/" + fileName;
 
-                // Tạo attachment và gắn vào message
                 Attachment attachment = new Attachment();
                 attachment.setId(UUID.randomUUID().toString());
                 attachment.setFileUrl(fileUrl);
@@ -148,12 +111,10 @@ public class MessageService {
             }
         }
 
-        // 6. Lưu message (cascade sẽ lưu cả Attachment nếu cấu hình đúng)
+        // 6. Lưu tin nhắn
         Message saved = messageRepository.save(message);
-
-        return ApiResponse.success("00", "Gửi tin nhắn có file thành công", messageMapper.toMessageResponse(saved));
+        return ApiResponse.success("00", "Gửi tin nhắn thành công", messageMapper.toMessageResponse(saved));
     }
-
 
 
     // Lấy danh sách tin nhắn theo cuộc trò chuyện
