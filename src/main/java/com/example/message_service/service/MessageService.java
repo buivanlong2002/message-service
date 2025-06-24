@@ -10,6 +10,10 @@ import com.example.message_service.repository.MessageRepository;
 import com.example.message_service.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -21,10 +25,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -151,19 +152,25 @@ public class MessageService {
     }
 
 
+
     // Lấy danh sách tin nhắn theo cuộc trò chuyện
-    public ApiResponse<List<MessageResponse>> getMessagesByConversation(String conversationId) {
+    public ApiResponse<List<MessageResponse>> getMessagesByConversation(String conversationId, int page, int size) {
         if (!conversationRepository.existsById(conversationId)) {
             return ApiResponse.error("01", "Không tìm thấy cuộc trò chuyện với ID: " + conversationId);
         }
 
-        List<Message> messages = messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId);
-        List<MessageResponse> responseList = messages.stream()
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<Message> messagePage = messageRepository.findByConversationId(conversationId, pageable);
+
+        List<MessageResponse> responseList = messagePage.getContent().stream()
                 .map(messageMapper::toMessageResponse)
                 .collect(Collectors.toList());
 
+        Collections.reverse(responseList); // để tin mới nằm dưới
+
         return ApiResponse.success("00", "Lấy danh sách tin nhắn thành công", responseList);
     }
+
 
     // Lấy tin nhắn theo ID và conversation
     public Optional<Message> getMessageByIdAndConversation(String id, String conversationId) {

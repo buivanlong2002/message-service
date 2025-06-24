@@ -52,12 +52,21 @@ public class MessageController {
         );
     }
 
-
-    // Lấy tất cả tin nhắn trong một cuộc trò chuyện
-    @PostMapping("/get-by-conversation")
-    public ApiResponse<List<MessageResponse>> getMessagesByConversation(@RequestParam String conversationId) {
-        return messageService.getMessagesByConversation(conversationId);
+    @GetMapping("/messages")
+    public ApiResponse<List<MessageResponse>> getMessages(
+            @RequestParam String conversationId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        return messageService.getMessagesByConversation(conversationId, page, size);
     }
+
+
+//    // Lấy tất cả tin nhắn trong một cuộc trò chuyện
+//    @PostMapping("/get-by-conversation")
+//    public ApiResponse<List<MessageResponse>> getMessagesByConversation(@RequestParam String conversationId) {
+//        return messageService.getMessagesByConversation(conversationId);
+//    }
 
     // Lấy tin nhắn theo ID trong một cuộc trò chuyện
     @PostMapping("/get-by-id")
