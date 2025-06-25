@@ -52,7 +52,7 @@ public class MessageController {
         );
     }
 
-    @GetMapping("/messages")
+    @GetMapping("/get-by-conversation")
     public ApiResponse<List<MessageResponse>> getMessages(
             @RequestParam String conversationId,
             @RequestParam(defaultValue = "0") int page,
