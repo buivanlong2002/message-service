@@ -14,7 +14,7 @@ import java.util.List;
 public class MessageResponse {
     private String id;
     private String conversationId;
-    private String senderId;
+    private SenderResponse sender;
     private String content;
     private String messageType;
     private LocalDateTime createdAt;
