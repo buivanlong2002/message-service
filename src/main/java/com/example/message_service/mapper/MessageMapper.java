@@ -1,6 +1,7 @@
 package com.example.message_service.mapper;
 
 import com.example.message_service.dto.response.MessageResponse;
+import com.example.message_service.dto.response.SenderResponse;
 import com.example.message_service.model.Message;
 import org.springframework.stereotype.Component;
 
@@ -11,22 +12,27 @@ import java.time.LocalDateTime;
 public class MessageMapper {
 
     public MessageResponse toMessageResponse(Message message) {
-        MessageResponse dto = new MessageResponse();
-        dto.setId(message.getId());
-        dto.setConversationId(message.getConversation().getId());
-        dto.setSenderId(message.getSender().getId());
-        dto.setContent(message.getContent());
-        dto.setMessageType(message.getMessageType().name());
-        dto.setCreatedAt(message.getCreatedAt());
-        dto.setReplyToId(message.getReplyTo() != null ? message.getReplyTo().getId() : null);
-        dto.setEdited(message.isEdited());
-        dto.setAttachments(message.getAttachments());
+        SenderResponse senderResponse = new SenderResponse(
+                message.getSender().getId(),
+                message.getSender().getDisplayName(),
+                message.getSender().getAvatarUrl()
+        );
 
-        // Tính timeAgo
-        dto.setTimeAgo(getTimeAgo(message.getCreatedAt()));
-
-        return dto;
+        return new MessageResponse(
+                message.getId(),
+                message.getConversation().getId(),
+                senderResponse,
+                message.getContent(),
+                message.getMessageType().name(),
+                message.getCreatedAt(),
+                message.getReplyTo() != null ? message.getReplyTo().getId() : null,
+                message.isEdited(),
+                message.getAttachments(),
+                getTimeAgo(message.getCreatedAt()) // nếu bạn tính sẵn
+        );
     }
+
+
 
     private String getTimeAgo(LocalDateTime createdAt) {
         Duration duration = Duration.between(createdAt, LocalDateTime.now());

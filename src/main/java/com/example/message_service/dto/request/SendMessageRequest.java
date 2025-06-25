@@ -11,10 +11,14 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 public class SendMessageRequest {
-    private UUID conversationId;
-    private UUID senderId;
-    private String receiverId;
-    private String content;
-    private MessageType messageType;
-    private String replyToMessageId;
+        private String senderId;
+        private String conversationId;
+        private String receiverId;
+        private String content;
+        private MessageType messageType;
+        private String replyToId;
+
+        // Getters and setters
+
+
 }
