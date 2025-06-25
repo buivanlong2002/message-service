@@ -97,7 +97,7 @@ public class MessageService {
             try {
                 for (MultipartFile file : files) {
                     if (!file.isEmpty()) {
-                        // 🔎 Phân loại file theo loại MIME
+                        // Phân loại file theo loại MIME
                         String contentType = file.getContentType();
                         String folder = "file"; // mặc định
                         if (contentType != null) {
@@ -114,7 +114,7 @@ public class MessageService {
                         }
 
                         // Tạo thư mục upload nếu chưa có
-                        Path uploadPath = Paths.get("src/main/resources/static/uploads/" + folder);
+                        Path uploadPath = Paths.get("uploads", folder);
                         Files.createDirectories(uploadPath);
 
                         // Lưu file vào ổ đĩa
