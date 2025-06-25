@@ -161,7 +161,7 @@ public class ConversationService {
     public ApiResponse<List<ConversationResponse>> getConversationsByUserPaged(String userId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
 
-        Page<Conversation> conversationPage = conversationRepository.findByMembers_Id(userId, pageable);
+        Page<Conversation> conversationPage = conversationRepository.findConversationById(userId, pageable);
 
         List<ConversationResponse> responseList = conversationPage.getContent().stream().map(conversation -> {
             // Tìm tin nhắn cuối

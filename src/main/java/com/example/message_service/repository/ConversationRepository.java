@@ -13,6 +13,6 @@ public interface ConversationRepository extends JpaRepository<Conversation, Stri
     // Tìm tất cả các cuộc trò chuyện của người dùng
     List<Conversation> findByCreatedBy(String createdBy);
 
-    Page<Conversation> findByMembers_Id(String userId, Pageable pageable);
+    Page<Conversation> findConversationById(String userId, Pageable pageable);
 
 }
