@@ -13,6 +13,5 @@ import java.util.UUID;
         private UUID conversationId;
         private UUID userId;
 
-        // Constructors, Getters, Setters
     }
 
