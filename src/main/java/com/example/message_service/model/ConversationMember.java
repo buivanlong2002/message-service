@@ -31,6 +31,4 @@ public class ConversationMember {
 
     @Column(name = "role", nullable = false, columnDefinition = "VARCHAR(20) DEFAULT 'member'")
     private String role = "member";
-
-
 }
