@@ -12,5 +12,13 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .addResourceHandler("/uploads/**")
                 .addResourceLocations("file:uploads/");
     }
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        registry.addMapping("/**") // hoặc "/ws/**"
+                .allowedOriginPatterns("*") // hoặc frontend origin
+                .allowCredentials(true)
+                .allowedMethods("*")
+                .allowedHeaders("*");
+    }
 
 }

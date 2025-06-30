@@ -28,7 +28,7 @@ public class MessageMapper {
                 message.getReplyTo() != null ? message.getReplyTo().getId() : null,
                 message.isEdited(),
                 message.getAttachments(),
-                getTimeAgo(message.getCreatedAt()) // nếu bạn tính sẵn
+                getTimeAgo(message.getCreatedAt())
         );
     }
 
