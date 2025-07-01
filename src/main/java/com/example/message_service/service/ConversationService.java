@@ -8,18 +8,13 @@ import com.example.message_service.model.*;
 import com.example.message_service.repository.*;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import java.nio.file.*;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -42,6 +37,21 @@ public class ConversationService {
 
     @Autowired
     private MessageRepository messageRepository;
+
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
+
+    public void pushUpdatedConversationsToUser(String userId) {
+        Optional<User> listUser = userRepository.findByEmail(userId);
+        String usString = listUser.get().getId();
+        ApiResponse<List<ConversationResponse>> response = getConversationsByUser(usString);
+        if (response.getData() != null) {
+            String destination = "/topic/conversations/" + userId;
+            messagingTemplate.convertAndSend(destination, response.getData());
+        }
+    }
+
+    // ----------------- CREATE --------------------
 
     public Conversation createGroupConversation(String name, String createdBy) {
         Conversation conversation = new Conversation();
@@ -76,10 +86,9 @@ public class ConversationService {
         Optional<User> senderOpt = userRepository.findById(senderId);
         if (senderOpt.isEmpty()) throw new RuntimeException("Sender not found");
 
-        String groupName = senderOpt.get().getDisplayName();
         Conversation group = new Conversation();
         group.setGroup(true);
-        group.setName(groupName);
+        group.setName(senderOpt.get().getDisplayName());
         group.setCreatedBy(senderId);
         group.setCreatedAt(LocalDateTime.now());
 
@@ -89,6 +98,8 @@ public class ConversationService {
 
         return saved;
     }
+
+    // ----------------- UPDATE --------------------
 
     public ApiResponse<ConversationResponse> updateConversation(String conversationId, UpdateConversationRequest request) {
         Optional<Conversation> optional = conversationRepository.findById(conversationId);
@@ -105,12 +116,45 @@ public class ConversationService {
         return ApiResponse.success("00", "Cập nhật cuộc trò chuyện thành công", dto);
     }
 
+    public ApiResponse<String> updateGroupAvatar(String conversationId, MultipartFile file) {
+        Optional<Conversation> optional = conversationRepository.findById(conversationId);
+        if (optional.isEmpty()) {
+            return ApiResponse.error("04", "Không tìm thấy cuộc trò chuyện");
+        }
+
+        Conversation conversation = optional.get();
+        if (!conversation.isGroup()) {
+            return ApiResponse.error("05", "Chỉ nhóm mới được cập nhật ảnh đại diện");
+        }
+
+        try {
+            String originalFilename = Path.of(file.getOriginalFilename()).getFileName().toString();
+            String fileName = UUID.randomUUID() + "_" + originalFilename;
+            String uploadDir = "uploads/conversations/";
+
+            Files.createDirectories(Paths.get(uploadDir));
+            Path filePath = Paths.get(uploadDir).resolve(fileName);
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+            String avatarUrl = "/uploads/conversations/" + fileName;
+            conversation.setAvatarUrl(avatarUrl);
+            conversationRepository.save(conversation);
+
+            return ApiResponse.success("00", "Cập nhật ảnh đại diện nhóm thành công", avatarUrl);
+
+        } catch (IOException e) {
+            return ApiResponse.error("06", "Lỗi khi upload ảnh đại diện nhóm");
+        }
+    }
+
     public void archiveConversation(String conversationId) {
         conversationRepository.findById(conversationId).ifPresent(c -> {
             c.setArchived(true);
             conversationRepository.save(c);
         });
     }
+
+    // ----------------- GET --------------------
 
     public ApiResponse<List<ConversationResponse>> getConversationsByUser(String userId) {
         Optional<User> userOpt = userRepository.findById(userId);
@@ -125,7 +169,6 @@ public class ConversationService {
                 .distinct()
                 .collect(Collectors.toList());
 
-        // Lấy last message cho mỗi conversation
         Map<String, Message> lastMessages = new HashMap<>();
         for (Conversation conv : conversations) {
             Message lastMsg = messageRepository.findTopByConversationIdOrderByCreatedAtDesc(conv.getId());
@@ -136,35 +179,20 @@ public class ConversationService {
 
         List<ConversationResponse> responses = conversations.stream()
                 .map(conv -> toConversationResponse(conv, userId, lastMessages.get(conv.getId())))
-                .sorted((a, b) -> {
-                    LocalDateTime timeA = a.getLastMessage() != null ? a.getLastMessage().getCreatedAt() : a.getCreatedAt();
-                    LocalDateTime timeB = b.getLastMessage() != null ? b.getLastMessage().getCreatedAt() : b.getCreatedAt();
-                    return timeB.compareTo(timeA); // Mới nhất lên đầu
-                })
+                .sorted(Comparator.comparing((ConversationResponse cr) -> {
+                    LocalDateTime time = cr.getLastMessage() != null ? cr.getLastMessage().getCreatedAt() : cr.getCreatedAt();
+                    return time;
+                }).reversed())
                 .collect(Collectors.toList());
 
         return ApiResponse.success("00", "Lấy danh sách cuộc trò chuyện thành công", responses);
     }
 
-    private Optional<Conversation> findOneToOneConversation(String userId1, String userId2) {
-        return conversationMemberRepository.findByUserId(userId1).stream()
-                .map(ConversationMember::getConversation)
-                .filter(conv -> !conv.isGroup())
-                .filter(conv -> {
-                    List<ConversationMember> members = conversationMemberRepository.findByConversationId(conv.getId());
-                    return members.size() == 2 &&
-                            members.stream().anyMatch(m -> m.getUser().getId().equals(userId2));
-                })
-                .findFirst();
-    }
-
     public ApiResponse<List<ConversationResponse>> getConversationsByUserPaged(String userId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-
         Page<Conversation> conversationPage = conversationRepository.findConversationById(userId, pageable);
 
         List<ConversationResponse> responseList = conversationPage.getContent().stream().map(conversation -> {
-            // Tìm tin nhắn cuối
             Message lastMessage = messageRepository.findTopByConversationIdOrderByCreatedAtDesc(conversation.getId());
 
             LastMessageInfo lastMessageInfo = null;
@@ -190,33 +218,59 @@ public class ConversationService {
         return ApiResponse.success("00", "Lấy danh sách nhóm thành công", responseList);
     }
 
+    public ApiResponse<List<ConversationResponse>> getConversationsRealTimeByUser(String userId) {
+        List<ConversationMember> members = conversationMemberRepository.findByUserId(userId);
+        List<ConversationResponse> results = new ArrayList<>();
+
+        for (ConversationMember member : members) {
+            Conversation conversation = member.getConversation();
+            if (conversation == null) continue;
+
+            Message lastMessage = messageRepository.findTopByConversationIdOrderByCreatedAtDesc(conversation.getId());
+            ConversationResponse response = toConversationResponse(conversation, userId, lastMessage);
+            results.add(response);
+        }
+
+        results.sort(Comparator.comparing((ConversationResponse cr) -> {
+            LocalDateTime t = cr.getLastMessage() != null ? cr.getLastMessage().getCreatedAt() : cr.getCreatedAt();
+            return t;
+        }).reversed());
+
+        return ApiResponse.success("00", "Lấy danh sách cuộc trò chuyện thành công", results);
+    }
+
+    // ----------------- HELPER --------------------
+
+    private Optional<Conversation> findOneToOneConversation(String userId1, String userId2) {
+        return conversationMemberRepository.findByUserId(userId1).stream()
+                .map(ConversationMember::getConversation)
+                .filter(conv -> !conv.isGroup())
+                .filter(conv -> {
+                    List<ConversationMember> members = conversationMemberRepository.findByConversationId(conv.getId());
+                    return members.size() == 2 && members.stream().anyMatch(m -> m.getUser().getId().equals(userId2));
+                })
+                .findFirst();
+    }
 
     private ConversationResponse toConversationResponse(Conversation conversation, String requesterId, Message lastMessage) {
         String name;
         String avatarUrl = null;
 
-        // Lấy danh sách thành viên của cuộc trò chuyện
         List<ConversationMember> members = conversationMemberRepository.findByConversationId(conversation.getId());
 
         if (conversation.isGroup()) {
-            // Trường hợp nhóm: lấy tên và avatar của nhóm
             name = conversation.getName();
-            avatarUrl = conversation.getAvatarUrl(); // Có thể null nếu chưa upload
+            avatarUrl = conversation.getAvatarUrl();
         } else {
-            // Trường hợp 1-1: tìm người còn lại (khác với requester)
             Optional<User> partnerOpt = members.stream()
                     .map(ConversationMember::getUser)
                     .filter(user -> !user.getId().equals(requesterId))
                     .findFirst();
-
             User partner = partnerOpt.orElse(null);
-
-            // Nếu tìm được người còn lại, lấy tên + avatar của họ làm tên và avatar nhóm
             name = partner != null ? partner.getDisplayName() : "Cuộc trò chuyện";
             avatarUrl = partner != null ? partner.getAvatarUrl() : null;
         }
 
-        // Chuẩn bị thông tin tin nhắn cuối
         LastMessageInfo lastMessageInfo = null;
         if (lastMessage != null) {
             lastMessageInfo = new LastMessageInfo(
@@ -227,7 +281,6 @@ public class ConversationService {
             );
         }
 
-        // Trả về DTO hoàn chỉnh
         return new ConversationResponse(
                 conversation.getId(),
                 name,
@@ -238,43 +291,6 @@ public class ConversationService {
         );
     }
 
-
-    public ApiResponse<String> updateGroupAvatar(String conversationId, MultipartFile file) {
-        Optional<Conversation> optional = conversationRepository.findById(conversationId);
-        if (optional.isEmpty()) {
-            return ApiResponse.error("04", "Không tìm thấy cuộc trò chuyện");
-        }
-
-        Conversation conversation = optional.get();
-        if (!conversation.isGroup()) {
-            return ApiResponse.error("05", "Chỉ nhóm mới được cập nhật ảnh đại diện");
-        }
-
-        try {
-            String originalFilename = Path.of(file.getOriginalFilename()).getFileName().toString();
-            String fileName = UUID.randomUUID() + "_" + originalFilename;
-            String uploadDir = "uploads/conversations/";
-
-            // Tạo thư mục nếu chưa có
-            Path dir = Paths.get(uploadDir);
-            Files.createDirectories(dir);
-
-            Path filePath = dir.resolve(fileName);
-            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-
-            String avatarUrl = "/uploads/conversations/" + fileName;
-            conversation.setAvatarUrl(avatarUrl);
-            conversationRepository.save(conversation);
-
-            return ApiResponse.success("00", "Cập nhật ảnh đại diện nhóm thành công", avatarUrl);
-
-        } catch (IOException e) {
-            return ApiResponse.error("06", "Lỗi khi upload ảnh đại diện nhóm");
-        }
-    }
-
-
-
     private String getTimeAgo(LocalDateTime createdAt) {
         Duration duration = Duration.between(createdAt, LocalDateTime.now());
         if (duration.toMinutes() < 1) return "Vừa xong";
@@ -282,4 +298,5 @@ public class ConversationService {
         if (duration.toDays() < 1) return duration.toHours() + " giờ trước";
         return duration.toDays() + " ngày trước";
     }
+
 }

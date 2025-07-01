@@ -33,22 +33,25 @@ public class WebSecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/",                      // Trang chủ
-                                "/index",                // Trang index
-                                "/css/**",               // CSS
-                                "/js/**",                // JS
-                                "/images/**",            // Ảnh nếu có
-                                "/favicon.ico",          // Icon trình duyệt
-                                "/uploads/**"            // ✅ Cho phép truy cập ảnh tĩnh
-                        ).permitAll()
-                        .requestMatchers(
+                                "/",                          // Trang chủ
+                                "/index",                     // Trang index
+                                "/css/**",                    // CSS
+                                "/js/**",                     // JS
+                                "/images/**",                 // Ảnh nếu có
+                                "/favicon.ico",               // Icon trình duyệt
+                                "/uploads/**",                // Cho phép truy cập ảnh tĩnh
+
+                                // WebSocket endpoints (quan trọng cho SockJS)
+                                "/ws/**",                     // WebSocket endpoint
+                                "/ws/info/**",                // SockJS dùng endpoint này để kiểm tra
+
+                                // Public API endpoints
                                 String.format("%s/auth/login", apiPrefix),
                                 String.format("%s/auth/register", apiPrefix),
                                 String.format("%s/login", apiPrefix),
                                 String.format("%s/profile", apiPrefix),
                                 String.format("%s/register", apiPrefix),
                                 String.format("%s/index", apiPrefix)
-
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
@@ -60,13 +63,16 @@ public class WebSecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("*"));
+        config.setAllowedOrigins(List.of("http://localhost:63342"));
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
         config.setExposedHeaders(List.of("Authorization"));
+        config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
     }
+
+
 }

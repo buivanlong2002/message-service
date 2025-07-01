@@ -88,7 +88,6 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 Pair.of(String.format("%s/index", apiPrefix), "GET")
         );
 
-        // Bypass các request tài nguyên tĩnh
         String path = request.getServletPath();
 
         if (path.startsWith("/css/") || path.startsWith("/js/") || path.startsWith("/images/")
@@ -96,6 +95,9 @@ public class JwtTokenFilter extends OncePerRequestFilter {
             return true;
         }
 
+        if (path.startsWith("/ws")) {
+            return true;
+        }
 
         for (Pair<String, String> bypassToken : bypassTokens) {
             if (path.contains(bypassToken.getFirst()) &&
@@ -103,6 +105,7 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 return true;
             }
         }
+
         return false;
     }
 
