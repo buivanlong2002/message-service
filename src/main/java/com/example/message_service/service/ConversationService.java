@@ -7,6 +7,7 @@ import com.example.message_service.dto.response.LastMessageInfo;
 import com.example.message_service.model.*;
 import com.example.message_service.repository.*;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -21,6 +22,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class ConversationService {
 
     @Autowired

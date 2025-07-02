@@ -1,9 +1,12 @@
+
 package com.example.message_service.controller;
 
 import com.example.message_service.dto.ApiResponse;
-import com.example.message_service.dto.response.ConversationResponse;
+import com.example.message_service.dto.request.MessageFetchRequest;
 import com.example.message_service.dto.response.MessageResponse;
 import com.example.message_service.service.ConversationService;
+import com.example.message_service.service.MessageService;
+import com.example.message_service.service.util.PushNewMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -18,42 +21,37 @@ import java.util.List;
 @RequiredArgsConstructor
 public class WebSocketController {
 
-    private final ConversationService conversationService;
+    private final MessageService messageService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final PushNewMessage pushNewMessage;
 
     /**
      * Nhận yêu cầu từ client để lấy danh sách cuộc trò chuyện (qua WebSocket)
      */
     @MessageMapping("/conversations/get")
     public void fetchUserConversations(@Payload String userId) {
-        // Xử lý nếu payload bị truyền dưới dạng chuỗi có dấu ngoặc kép
         if (userId != null && userId.startsWith("\"") && userId.endsWith("\"")) {
             userId = userId.substring(1, userId.length() - 1);
         }
-
-        pushUpdatedConversationsToUser(userId);
+        System.out.println("Fetching user conversations for: " + userId);
+        pushNewMessage.pushUpdatedConversationsToUser(userId);
     }
 
     /**
-     * Gửi danh sách cuộc trò chuyện của người dùng về client
+     * Lấy danh sách tin nhắn của một cuộc trò chuyện qua WebSocket
      */
-    public void pushUpdatedConversationsToUser(String userId) {
-        ApiResponse<List<ConversationResponse>> response = conversationService.getConversationsByUser(userId);
-        if (response.getData() != null) {
-            String destination = "/topic/conversations/" + userId;
-            messagingTemplate.convertAndSend(destination, response.getData());
-            log.info("Đã gửi danh sách cuộc trò chuyện tới {}", destination);
-        } else {
-            log.warn("Không có dữ liệu cuộc trò chuyện cho userId: {}", userId);
-        }
-    }
+    @MessageMapping("/messages/get")
+    public void fetchMessagesInConversation(@Payload MessageFetchRequest request) {
+        String conversationId = request.getConversationId();
+        int page = request.getPage();
+        int size = request.getSize();
 
-    /**
-     * Gửi tin nhắn mới đến tất cả người tham gia trong cuộc trò chuyện
-     */
-    public void pushNewMessageToConversation(String conversationId, MessageResponse message) {
-        String destination = "/topic/conversations/" + conversationId;
-        messagingTemplate.convertAndSend(destination, message);
-        log.info("Đã gửi tin nhắn mới tới {}", destination);
+        ApiResponse<List<MessageResponse>> response =
+                messageService.getMessagesByConversation(conversationId, page, size);
+
+        String destination = "/topic/messages/" + conversationId;
+        messagingTemplate.convertAndSend(destination, response.getData());
+        System.out.println("Fetching messages for: " + response.getData());
+        log.info("Đã gửi danh sách tin nhắn tới {}", destination);
     }
 }

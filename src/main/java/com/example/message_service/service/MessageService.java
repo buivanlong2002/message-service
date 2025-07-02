@@ -1,6 +1,5 @@
 package com.example.message_service.service;
 
-import com.example.message_service.controller.WebSocketController;
 import com.example.message_service.dto.ApiResponse;
 import com.example.message_service.dto.response.MessageResponse;
 import com.example.message_service.mapper.MessageMapper;
@@ -9,7 +8,9 @@ import com.example.message_service.repository.ConversationMemberRepository;
 import com.example.message_service.repository.ConversationRepository;
 import com.example.message_service.repository.MessageRepository;
 import com.example.message_service.repository.UserRepository;
+import com.example.message_service.service.util.PushNewMessage;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -46,14 +47,15 @@ public class MessageService {
 
     @Autowired
     private ConversationService conversationService;
+
     @Autowired
-    private WebSocketController webSocketController;
+    private PushNewMessage pushNewMessage;
+
     @Autowired
     private ConversationMemberRepository conversationMemberRepository;
 
     private static final long MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
 
-    // Gửi tin nhắn mới (kể cả tạo mới conversation nếu cần)
     public ApiResponse<MessageResponse> sendMessage(
             String senderId,
             String conversationId,
@@ -63,11 +65,9 @@ public class MessageService {
             String content,
             String replyToId
     ) {
-        // 1. Xác thực người gửi
         User sender = userRepository.findById(senderId)
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người gửi"));
 
-        // 2. Lấy hoặc tạo cuộc trò chuyện
         Conversation conversation;
         if (conversationId != null && !conversationId.isBlank()) {
             conversation = conversationRepository.findById(conversationId)
@@ -79,7 +79,6 @@ public class MessageService {
             conversation = conversationService.getOrCreateOneToOneConversation(senderId, receiverId);
         }
 
-        // 3. Tạo tin nhắn mới
         Message message = new Message();
         message.setId(UUID.randomUUID().toString());
         message.setSender(sender);
@@ -89,14 +88,12 @@ public class MessageService {
         message.setCreatedAt(LocalDateTime.now());
         message.setEdited(false);
 
-        // 4. Xử lý reply nếu có
         if (replyToId != null && !replyToId.isBlank()) {
             Message replyTo = messageRepository.findById(replyToId)
                     .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy tin nhắn để trả lời"));
             message.setReplyTo(replyTo);
         }
 
-        // 5. Xử lý file/image/video đính kèm
         List<Attachment> attachments = new ArrayList<>();
         if (files != null && files.length > 0) {
             try {
@@ -145,26 +142,20 @@ public class MessageService {
             }
         }
 
-        // 6. Lưu tin nhắn
         Message saved = messageRepository.save(message);
 
-        // 7. Gửi tin nhắn mới qua WebSocket
         MessageResponse response = messageMapper.toMessageResponse(saved);
-        webSocketController.pushNewMessageToConversation(conversation.getId(), response);
+        pushNewMessage.pushNewMessageToConversation(conversation.getId(), response);
 
-        // 8. Gửi cập nhật danh sách cuộc trò chuyện cho người nhận (sidebar update)
         List<ConversationMember> members = conversationMemberRepository.findByConversationId(conversation.getId());
         for (ConversationMember member : members) {
             String memberId = member.getUser().getId();
-            webSocketController.pushUpdatedConversationsToUser(memberId);
+            pushNewMessage.pushUpdatedConversationsToUser(memberId);
         }
 
         return ApiResponse.success("00", "Gửi tin nhắn thành công", response);
     }
-
-
-
-    // Lấy danh sách tin nhắn theo cuộc trò chuyện
+    @Transactional
     public ApiResponse<List<MessageResponse>> getMessagesByConversation(String conversationId, int page, int size) {
         if (!conversationRepository.existsById(conversationId)) {
             return ApiResponse.error("01", "Không tìm thấy cuộc trò chuyện với ID: " + conversationId);
@@ -177,18 +168,15 @@ public class MessageService {
                 .map(messageMapper::toMessageResponse)
                 .collect(Collectors.toList());
 
-        Collections.reverse(responseList); // để tin mới nằm dưới
+        Collections.reverse(responseList);
 
         return ApiResponse.success("00", "Lấy danh sách tin nhắn thành công", responseList);
     }
 
-
-    // Lấy tin nhắn theo ID và conversation
     public Optional<Message> getMessageByIdAndConversation(String id, String conversationId) {
         return messageRepository.findByIdAndConversationId(id, conversationId);
     }
 
-    // Lấy tin nhắn của một người gửi trong một cuộc trò chuyện
     public ApiResponse<List<MessageResponse>> getMessagesBySenderAndConversation(String conversationId, String senderId) {
         if (!conversationRepository.existsById(conversationId)) {
             return ApiResponse.error("01", "Không tìm thấy cuộc trò chuyện");
@@ -202,7 +190,6 @@ public class MessageService {
         return ApiResponse.success("00", "Lấy tin nhắn theo người gửi thành công", responseList);
     }
 
-    // Chỉnh sửa nội dung tin nhắn
     public ApiResponse<MessageResponse> editMessage(String messageId, String newContent) {
         Optional<Message> messageOpt = messageRepository.findById(messageId);
         if (messageOpt.isEmpty()) {

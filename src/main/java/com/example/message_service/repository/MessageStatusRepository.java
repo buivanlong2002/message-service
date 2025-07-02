@@ -2,10 +2,11 @@ package com.example.message_service.repository;
 
 import com.example.message_service.model.MessageStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.UUID;
-
+@Repository
 public interface MessageStatusRepository extends JpaRepository<MessageStatus, String> {
 
     // Lấy tất cả trạng thái của một tin nhắn

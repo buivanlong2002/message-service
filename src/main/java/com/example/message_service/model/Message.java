@@ -48,6 +48,6 @@ public class Message {
     private boolean isEdited;  // Kiểm tra xem tin nhắn đã được chỉnh sửa chưa
 
     //Thêm liên kết với Attachment
-    @OneToMany(mappedBy = "message", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "message", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Attachment> attachments = new ArrayList<>();
 }
