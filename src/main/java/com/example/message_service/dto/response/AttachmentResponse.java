@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class AttachmentResponse {
     private String id;
-    private String fileName;
+    private String originalFileName;
     private String url;
     private String fileType;
 }

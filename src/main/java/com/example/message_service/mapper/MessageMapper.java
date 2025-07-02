@@ -42,17 +42,11 @@ public class MessageMapper {
         return attachments.stream()
                 .map(att -> new AttachmentResponse(
                         att.getId(),
-                        extractFileName(att.getFileUrl()),
+                        att.getOriginalFileName(),
                         att.getFileUrl(),
                         att.getFileType()
                 ))
                 .collect(Collectors.toList());
-    }
-
-    private String extractFileName(String fileUrl) {
-        if (fileUrl == null || fileUrl.isBlank()) return null;
-        int lastSlash = fileUrl.lastIndexOf('/');
-        return lastSlash >= 0 ? fileUrl.substring(lastSlash + 1) : fileUrl;
     }
 
     private String getTimeAgo(LocalDateTime createdAt) {
