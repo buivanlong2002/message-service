@@ -1,7 +1,6 @@
 package com.example.message_service.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -26,11 +25,14 @@ public class Attachment {
     private Message message; // Tin nhắn mà file này liên kết
 
     @Column(nullable = false)
-    private String fileUrl; // Đường dẫn URL của file
+    private String fileUrl; // Đường dẫn URL của file (đã encode + UUID)
 
     @Column(nullable = false)
     private String fileType; // Loại file (image, video, etc.)
 
     @Column(nullable = false)
     private long fileSize; // Kích thước file
+
+    @Column(name = "original_file_name", nullable = false)
+    private String originalFileName; // Tên file thật người dùng upload
 }
