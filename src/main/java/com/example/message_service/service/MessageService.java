@@ -116,11 +116,12 @@ public class MessageService {
                         Path uploadPath = Paths.get("uploads", folder);
                         Files.createDirectories(uploadPath);
 
-                        String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
-                        Path filePath = uploadPath.resolve(fileName);
+                        String originalFileName = file.getOriginalFilename();
+                        String uuidFileName = UUID.randomUUID() + "_" + originalFileName;
+                        Path filePath = uploadPath.resolve(uuidFileName);
                         Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
-                        String encodedName = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");
+                        String encodedName = URLEncoder.encode(uuidFileName, StandardCharsets.UTF_8).replace("+", "%20");
                         String fileUrl = "/uploads/" + folder + "/" + encodedName;
 
                         Attachment attachment = new Attachment();
@@ -129,6 +130,7 @@ public class MessageService {
                         attachment.setFileType(contentType);
                         attachment.setFileSize(file.getSize());
                         attachment.setMessage(message);
+                        attachment.setOriginalFileName(originalFileName);
 
                         attachments.add(attachment);
                     }
@@ -155,6 +157,7 @@ public class MessageService {
 
         return ApiResponse.success("00", "Gửi tin nhắn thành công", response);
     }
+
     @Transactional
     public ApiResponse<List<MessageResponse>> getMessagesByConversation(String conversationId, int page, int size) {
         if (!conversationRepository.existsById(conversationId)) {
