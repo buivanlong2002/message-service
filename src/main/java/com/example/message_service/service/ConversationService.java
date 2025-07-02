@@ -4,9 +4,12 @@ import com.example.message_service.dto.ApiResponse;
 import com.example.message_service.dto.request.UpdateConversationRequest;
 import com.example.message_service.dto.response.ConversationResponse;
 import com.example.message_service.dto.response.LastMessageInfo;
+import com.example.message_service.dto.response.MessageResponse;
+import com.example.message_service.mapper.MessageMapper;
 import com.example.message_service.model.*;
 import com.example.message_service.repository.*;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
@@ -39,6 +42,8 @@ public class ConversationService {
 
     @Autowired
     private MessageRepository messageRepository;
+    @Autowired
+    private MessageMapper messageMapper;
 
 
     // ----------------- CREATE --------------------
@@ -290,5 +295,29 @@ public class ConversationService {
         if (duration.toDays() < 1) return duration.toHours() + " giờ trước";
         return duration.toDays() + " ngày trước";
     }
+
+    @Transactional
+    public ApiResponse<List<MessageResponse>> getMessagesByConversationId(String conversationId, String userId) {
+        Optional<Conversation> optionalConversation = conversationRepository.findById(conversationId);
+        if (optionalConversation.isEmpty()) {
+            return ApiResponse.error("01", "Không tìm thấy cuộc trò chuyện");
+        }
+
+        // Kiểm tra người dùng có trong cuộc trò chuyện không
+        boolean isMember = conversationMemberRepository.existsByConversationIdAndUserId(conversationId, userId);
+        if (!isMember) {
+            return ApiResponse.error("02", "Người dùng không thuộc cuộc trò chuyện này");
+        }
+
+        // Lấy tất cả tin nhắn và sắp xếp theo thời gian tạo tăng dần
+        List<Message> messages = messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId);
+
+        List<MessageResponse> messageResponses = messages.stream()
+                .map(messageMapper::toMessageResponse)
+                .collect(Collectors.toList());
+
+        return ApiResponse.success("00", "Lấy danh sách tin nhắn thành công", messageResponses);
+    }
+
 
 }

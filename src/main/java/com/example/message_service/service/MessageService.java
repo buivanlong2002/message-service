@@ -65,9 +65,11 @@ public class MessageService {
             String content,
             String replyToId
     ) {
+        // 1. Xác minh người gửi
         User sender = userRepository.findById(senderId)
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người gửi"));
 
+        // 2. Lấy hoặc tạo cuộc trò chuyện
         Conversation conversation;
         if (conversationId != null && !conversationId.isBlank()) {
             conversation = conversationRepository.findById(conversationId)
@@ -79,6 +81,7 @@ public class MessageService {
             conversation = conversationService.getOrCreateOneToOneConversation(senderId, receiverId);
         }
 
+        // 3. Tạo đối tượng Message
         Message message = new Message();
         message.setId(UUID.randomUUID().toString());
         message.setSender(sender);
@@ -88,50 +91,49 @@ public class MessageService {
         message.setCreatedAt(LocalDateTime.now());
         message.setEdited(false);
 
+        // 4. Nếu trả lời tin nhắn nào đó
         if (replyToId != null && !replyToId.isBlank()) {
             Message replyTo = messageRepository.findById(replyToId)
                     .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy tin nhắn để trả lời"));
             message.setReplyTo(replyTo);
         }
 
+        // 5. Xử lý file đính kèm (nếu có)
         List<Attachment> attachments = new ArrayList<>();
         if (files != null && files.length > 0) {
             try {
                 for (MultipartFile file : files) {
-                    if (!file.isEmpty()) {
-                        String contentType = file.getContentType();
-                        String folder = "file";
-                        if (contentType != null) {
-                            if (contentType.startsWith("image/")) {
-                                folder = "image";
-                            } else if (contentType.startsWith("video/")) {
-                                folder = "video";
-                            }
-                        }
+                    if (file.isEmpty()) continue;
 
-                        if ("video".equals(folder) && file.getSize() > MAX_VIDEO_SIZE) {
-                            return ApiResponse.error("06", "Video quá lớn. Tối đa 100MB.");
-                        }
+                    String contentType = file.getContentType();
+                    String folder = getFolderByContentType(contentType);
 
-                        Path uploadPath = Paths.get("uploads", folder);
-                        Files.createDirectories(uploadPath);
-
-                        String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
-                        Path filePath = uploadPath.resolve(fileName);
-                        Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-
-                        String encodedName = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");
-                        String fileUrl = "/uploads/" + folder + "/" + encodedName;
-
-                        Attachment attachment = new Attachment();
-                        attachment.setId(UUID.randomUUID().toString());
-                        attachment.setFileUrl(fileUrl);
-                        attachment.setFileType(contentType);
-                        attachment.setFileSize(file.getSize());
-                        attachment.setMessage(message);
-
-                        attachments.add(attachment);
+                    if ("video".equals(folder) && file.getSize() > MAX_VIDEO_SIZE) {
+                        return ApiResponse.error("06", "Video quá lớn. Tối đa 100MB.");
                     }
+
+                    // Tạo thư mục nếu chưa tồn tại
+                    Path uploadPath = Paths.get("uploads", folder);
+                    Files.createDirectories(uploadPath);
+
+                    // Lưu file
+                    String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
+                    Path filePath = uploadPath.resolve(fileName);
+                    Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+                    // Encode tên file để dùng trong URL
+                    String encodedName = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");
+                    String fileUrl = "/uploads/" + folder + "/" + encodedName;
+
+                    // Tạo đối tượng Attachment
+                    Attachment attachment = new Attachment();
+                    attachment.setId(UUID.randomUUID().toString());
+                    attachment.setFileUrl(fileUrl);
+                    attachment.setFileType(contentType);
+                    attachment.setFileSize(file.getSize());
+                    attachment.setMessage(message);
+
+                    attachments.add(attachment);
                 }
 
                 if (!attachments.isEmpty()) {
@@ -142,19 +144,35 @@ public class MessageService {
             }
         }
 
-        Message saved = messageRepository.save(message);
+        // 6. Lưu tin nhắn
+        Message savedMessage = messageRepository.save(message);
 
-        MessageResponse response = messageMapper.toMessageResponse(saved);
+        // 7. Chuyển đổi sang DTO
+        MessageResponse response = messageMapper.toMessageResponse(savedMessage);
+
+        // 8. Gửi tin nhắn mới qua WebSocket đến những người trong cuộc trò chuyện
         pushNewMessage.pushNewMessageToConversation(conversation.getId(), response);
 
+        // 9. Cập nhật danh sách cuộc trò chuyện cho các thành viên
         List<ConversationMember> members = conversationMemberRepository.findByConversationId(conversation.getId());
         for (ConversationMember member : members) {
             String memberId = member.getUser().getId();
             pushNewMessage.pushUpdatedConversationsToUser(memberId);
         }
 
+        // 10. Trả về phản hồi thành công
         return ApiResponse.success("00", "Gửi tin nhắn thành công", response);
     }
+
+
+    private String getFolderByContentType(String contentType) {
+        if (contentType == null) return "file";
+        if (contentType.startsWith("image/")) return "image";
+        if (contentType.startsWith("video/")) return "video";
+        return "file";
+    }
+
+
     @Transactional
     public ApiResponse<List<MessageResponse>> getMessagesByConversation(String conversationId, int page, int size) {
         if (!conversationRepository.existsById(conversationId)) {
