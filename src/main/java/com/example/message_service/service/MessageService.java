@@ -1,9 +1,11 @@
 package com.example.message_service.service;
 
+import com.example.message_service.controller.WebSocketController;
 import com.example.message_service.dto.ApiResponse;
 import com.example.message_service.dto.response.MessageResponse;
 import com.example.message_service.mapper.MessageMapper;
 import com.example.message_service.model.*;
+import com.example.message_service.repository.ConversationMemberRepository;
 import com.example.message_service.repository.ConversationRepository;
 import com.example.message_service.repository.MessageRepository;
 import com.example.message_service.repository.UserRepository;
@@ -44,6 +46,10 @@ public class MessageService {
 
     @Autowired
     private ConversationService conversationService;
+    @Autowired
+    private WebSocketController webSocketController;
+    @Autowired
+    private ConversationMemberRepository conversationMemberRepository;
 
     private static final long MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
 
@@ -96,9 +102,8 @@ public class MessageService {
             try {
                 for (MultipartFile file : files) {
                     if (!file.isEmpty()) {
-                        // Phân loại file theo loại MIME
                         String contentType = file.getContentType();
-                        String folder = "file"; // mặc định
+                        String folder = "file";
                         if (contentType != null) {
                             if (contentType.startsWith("image/")) {
                                 folder = "image";
@@ -107,25 +112,20 @@ public class MessageService {
                             }
                         }
 
-                        // Giới hạn kích thước video
                         if ("video".equals(folder) && file.getSize() > MAX_VIDEO_SIZE) {
                             return ApiResponse.error("06", "Video quá lớn. Tối đa 100MB.");
                         }
 
-                        // Tạo thư mục upload nếu chưa có
                         Path uploadPath = Paths.get("uploads", folder);
                         Files.createDirectories(uploadPath);
 
-                        // Lưu file vào ổ đĩa
                         String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
                         Path filePath = uploadPath.resolve(fileName);
                         Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
-                        // Encode URL an toàn
                         String encodedName = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");
                         String fileUrl = "/uploads/" + folder + "/" + encodedName;
 
-                        // Tạo bản ghi attachment
                         Attachment attachment = new Attachment();
                         attachment.setId(UUID.randomUUID().toString());
                         attachment.setFileUrl(fileUrl);
@@ -147,7 +147,19 @@ public class MessageService {
 
         // 6. Lưu tin nhắn
         Message saved = messageRepository.save(message);
-        return ApiResponse.success("00", "Gửi tin nhắn thành công", messageMapper.toMessageResponse(saved));
+
+        // 7. Gửi tin nhắn mới qua WebSocket
+        MessageResponse response = messageMapper.toMessageResponse(saved);
+        webSocketController.pushNewMessageToConversation(conversation.getId(), response);
+
+        // 8. Gửi cập nhật danh sách cuộc trò chuyện cho người nhận (sidebar update)
+        List<ConversationMember> members = conversationMemberRepository.findByConversationId(conversation.getId());
+        for (ConversationMember member : members) {
+            String memberId = member.getUser().getId();
+            webSocketController.pushUpdatedConversationsToUser(memberId);
+        }
+
+        return ApiResponse.success("00", "Gửi tin nhắn thành công", response);
     }
 
 

@@ -13,6 +13,7 @@ public interface ConversationMemberRepository extends JpaRepository<Conversation
 
     List<ConversationMember> findByConversationId(String conversationId);
 
+
     List<ConversationMember> findByUserId(String userId);
 
     @Transactional

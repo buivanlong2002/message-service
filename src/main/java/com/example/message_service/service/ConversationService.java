@@ -38,18 +38,6 @@ public class ConversationService {
     @Autowired
     private MessageRepository messageRepository;
 
-    @Autowired
-    private SimpMessagingTemplate messagingTemplate;
-
-    public void pushUpdatedConversationsToUser(String userId) {
-        Optional<User> listUser = userRepository.findByEmail(userId);
-        String usString = listUser.get().getId();
-        ApiResponse<List<ConversationResponse>> response = getConversationsByUser(usString);
-        if (response.getData() != null) {
-            String destination = "/topic/conversations/" + userId;
-            messagingTemplate.convertAndSend(destination, response.getData());
-        }
-    }
 
     // ----------------- CREATE --------------------
 
@@ -169,6 +157,7 @@ public class ConversationService {
                 .distinct()
                 .collect(Collectors.toList());
 
+        // Lấy last message cho mỗi conversation
         Map<String, Message> lastMessages = new HashMap<>();
         for (Conversation conv : conversations) {
             Message lastMsg = messageRepository.findTopByConversationIdOrderByCreatedAtDesc(conv.getId());
@@ -179,10 +168,11 @@ public class ConversationService {
 
         List<ConversationResponse> responses = conversations.stream()
                 .map(conv -> toConversationResponse(conv, userId, lastMessages.get(conv.getId())))
-                .sorted(Comparator.comparing((ConversationResponse cr) -> {
-                    LocalDateTime time = cr.getLastMessage() != null ? cr.getLastMessage().getCreatedAt() : cr.getCreatedAt();
-                    return time;
-                }).reversed())
+                .sorted((a, b) -> {
+                    LocalDateTime timeA = a.getLastMessage() != null ? a.getLastMessage().getCreatedAt() : a.getCreatedAt();
+                    LocalDateTime timeB = b.getLastMessage() != null ? b.getLastMessage().getCreatedAt() : b.getCreatedAt();
+                    return timeB.compareTo(timeA); // Mới nhất lên đầu
+                })
                 .collect(Collectors.toList());
 
         return ApiResponse.success("00", "Lấy danh sách cuộc trò chuyện thành công", responses);
