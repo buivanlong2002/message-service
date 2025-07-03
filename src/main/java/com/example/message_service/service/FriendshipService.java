@@ -1,13 +1,18 @@
 package com.example.message_service.service;
 
 import com.example.message_service.dto.ApiResponse;
-import com.example.message_service.dto.request.FriendRequestRequest;
+import com.example.message_service.dto.response.FriendRequestResponse; // Sửa DTO để phù hợp
 import com.example.message_service.model.Friendship;
+import com.example.message_service.model.FriendshipId;
 import com.example.message_service.model.User;
 import com.example.message_service.repository.FriendshipRepository;
 import com.example.message_service.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -23,48 +28,50 @@ public class FriendshipService {
     @Autowired
     private UserRepository userRepository;
 
+    // Khi có thay đổi về bạn bè, xóa cache của cả 2 người dùng
+    @Caching(evict = {
+            @CacheEvict(value = "friends", key = "#senderId"),
+            @CacheEvict(value = "friends", key = "#receiverId"),
+            @CacheEvict(value = "pendingRequests", key = "#receiverId")
+    })
+    @Transactional
     public ApiResponse<String> sendFriendRequest(String senderId, String receiverId) {
-        // Tìm sender và receiver
-        Optional<User> senderOpt = userRepository.findById(senderId);
-        Optional<User> receiverOpt = userRepository.findById(receiverId);
+        if (senderId.equals(receiverId)) {
+            return ApiResponse.error("03", "Bạn không thể tự kết bạn với chính mình");
+        }
 
-        if (senderOpt.isEmpty() || receiverOpt.isEmpty()) {
+        // Kiểm tra tồn tại 2 chiều bằng query đã tối ưu
+        if (friendshipRepository.friendshipExists(senderId, receiverId)) {
+            return ApiResponse.error("02", "Mối quan hệ kết bạn đã tồn tại hoặc đang chờ xử lý.");
+        }
+
+        User sender = userRepository.findById(senderId).orElse(null);
+        User receiver = userRepository.findById(receiverId).orElse(null);
+
+        if (sender == null || receiver == null) {
             return ApiResponse.error("01", "Người dùng không tồn tại");
         }
 
-        User sender = senderOpt.get();
-        User receiver = receiverOpt.get();
-
-        // Kiểm tra xem đã có mối quan hệ kết bạn chưa (cả 2 chiều)
-        boolean exists = friendshipRepository.existsBySenderAndReceiver(sender, receiver)
-                || friendshipRepository.existsBySenderAndReceiver(receiver, sender);
-        if (exists) {
-            return ApiResponse.error("02", "Mối quan hệ kết bạn đã tồn tại");
-        }
-
-        // Tạo và lưu mối quan hệ kết bạn mới
         Friendship friendship = new Friendship();
         friendship.setSender(sender);
         friendship.setReceiver(receiver);
         friendship.setStatus("pending");
-        friendshipRepository.save(friendship);
+        // @CreationTimestamp sẽ tự động điền requestedAt
 
-        return ApiResponse.success("00","Lời mời kết bạn đã được gửi");
+        friendshipRepository.save(friendship);
+        return ApiResponse.success("00", "Lời mời kết bạn đã được gửi");
     }
 
-
+    @Caching(evict = {
+            @CacheEvict(value = "friends", key = "#senderId"),
+            @CacheEvict(value = "friends", key = "#receiverId"),
+            @CacheEvict(value = "pendingRequests", key = "#receiverId")
+    })
+    @Transactional
     public ApiResponse<String> acceptFriendRequest(String senderId, String receiverId) {
-        Optional<User> senderOpt = userRepository.findById(senderId);
-        Optional<User> receiverOpt = userRepository.findById(receiverId);
+        FriendshipId friendshipId = new FriendshipId(senderId, receiverId);
+        Optional<Friendship> friendshipOpt = friendshipRepository.findById(friendshipId);
 
-        if (senderOpt.isEmpty() || receiverOpt.isEmpty()) {
-            return ApiResponse.error("02", "Người dùng không tồn tại");
-        }
-
-        User sender = senderOpt.get();
-        User receiver = receiverOpt.get();
-
-        Optional<Friendship> friendshipOpt = friendshipRepository.findBySenderAndReceiver(sender, receiver);
         if (friendshipOpt.isEmpty()) {
             return ApiResponse.error("03", "Không tìm thấy lời mời kết bạn");
         }
@@ -81,69 +88,53 @@ public class FriendshipService {
         return ApiResponse.success("00", "Lời mời kết bạn đã được chấp nhận", null);
     }
 
-
-    // Từ chối lời mời kết bạn
+    @Caching(evict = {
+            @CacheEvict(value = "friends", key = "#senderId"),
+            @CacheEvict(value = "friends", key = "#receiverId"),
+            @CacheEvict(value = "pendingRequests", key = "#receiverId")
+    })
+    @Transactional
     public ApiResponse<String> rejectFriendRequest(String senderId, String receiverId) {
-        Optional<User> senderOpt = userRepository.findById(senderId);
-        Optional<User> receiverOpt = userRepository.findById(receiverId);
+        FriendshipId friendshipId = new FriendshipId(senderId, receiverId);
+        Optional<Friendship> friendshipOpt = friendshipRepository.findById(friendshipId);
 
-        if (senderOpt.isEmpty() || receiverOpt.isEmpty()) {
-            return ApiResponse.error("02", "Người dùng không tồn tại");
-        }
-
-        User sender = senderOpt.get();
-        User receiver = receiverOpt.get();
-
-        Optional<Friendship> friendshipOpt = friendshipRepository.findBySenderAndReceiver(sender, receiver);
         if (friendshipOpt.isEmpty()) {
             return ApiResponse.error("03", "Không tìm thấy lời mời kết bạn để từ chối");
         }
 
+        // Nếu tìm thấy, thực hiện xóa
         friendshipRepository.delete(friendshipOpt.get());
         return ApiResponse.success("00", "Lời mời kết bạn đã bị từ chối", null);
     }
 
-    public ApiResponse<List<String>> getFriendships(String userId) {
-        Optional<User> userOpt = userRepository.findById(userId);
-        if (userOpt.isEmpty()) {
-            return ApiResponse.error("02", "Người dùng không tồn tại");
-        }
+    @Cacheable(value = "friends", key = "#userId")
+    @Transactional(readOnly = true)
+    public ApiResponse<List<User>> getFriendships(String userId) {
+        // Dùng query đã tối ưu N+1
+        List<Friendship> friendships = friendshipRepository.findAcceptedFriendsWithUsers(userId);
 
-        User user = userOpt.get();
-
-
-        List<Friendship> friendships = friendshipRepository.findBySenderOrReceiver(user, user);
-
-
-        List<String> friendNames = friendships.stream()
-                .filter(f -> "accepted".equals(f.getStatus()))
-                .map(f -> {
-                    User friend = f.getSender().equals(user) ? f.getReceiver() : f.getSender();
-                    return friend.getDisplayName(); // hoặc getUsername(), tùy bạn
-                })
+        List<User> friends = friendships.stream()
+                .map(f -> f.getSender().getId().equals(userId) ? f.getReceiver() : f.getSender())
                 .collect(Collectors.toList());
 
-        return ApiResponse.success("00", "Lấy danh sách bạn bè thành công", friendNames);
+        return ApiResponse.success("00", "Lấy danh sách bạn bè thành công", friends);
     }
 
+    @Cacheable(value = "pendingRequests", key = "#userId")
+    @Transactional(readOnly = true)
+    public ApiResponse<List<FriendRequestResponse>> getPendingRequests(String userId) {
+        // Dùng query đã tối ưu N+1
+        List<Friendship> pendingRequests = friendshipRepository.findPendingRequestsForUser(userId);
 
-
-    // Lấy tất cả lời mời kết bạn đang chờ chấp nhận (status = "pending") cho một người nhận
-    public ApiResponse<List<FriendRequestRequest>> getPendingRequests(String userId) {
-        Optional<User> receiverOpt = userRepository.findById(userId);
-        if (receiverOpt.isEmpty()) {
-            return ApiResponse.error("02", "Người nhận không tồn tại");
-        }
-
-        User receiver = receiverOpt.get();
-        List<Friendship> pendingRequests = friendshipRepository.findByStatusAndReceiver("pending", receiver);
-
-        List<FriendRequestRequest> dtoList = pendingRequests.stream()
-                .map(f -> new FriendRequestRequest(f.getSender().getDisplayName(), f.getRequestedAt()))
+        List<FriendRequestResponse> dtoList = pendingRequests.stream()
+                .map(f -> new FriendRequestResponse(
+                        f.getSender().getId(),
+                        f.getSender().getDisplayName(),
+                        f.getSender().getAvatarUrl(),
+                        f.getRequestedAt()
+                ))
                 .collect(Collectors.toList());
 
         return ApiResponse.success("00", "Lấy danh sách lời mời kết bạn đang chờ thành công", dtoList);
     }
-
-
 }

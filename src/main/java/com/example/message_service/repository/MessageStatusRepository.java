@@ -1,20 +1,26 @@
+// Trong MessageStatusRepository.java
 package com.example.message_service.repository;
 
 import com.example.message_service.model.MessageStatus;
+import com.example.message_service.model.MessageStatusId;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.UUID;
+
 @Repository
-public interface MessageStatusRepository extends JpaRepository<MessageStatus, String> {
+public interface MessageStatusRepository extends JpaRepository<MessageStatus, MessageStatusId> {
 
-    // Lấy tất cả trạng thái của một tin nhắn
-    List<MessageStatus> findByMessageId(String messageId);
+    // GỢI Ý 3: Tối ưu N+1 query khi lấy tất cả trạng thái của một tin nhắn
+    @Query("SELECT ms FROM MessageStatus ms JOIN FETCH ms.user WHERE ms.message.id = :messageId")
+    List<MessageStatus> findAllByMessageIdWithUser(@Param("messageId") String messageId);
 
-    // Lấy trạng thái của tin nhắn theo người dùng
-    List<MessageStatus> findByMessageIdAndUserId(String messageId, String userId);
+    // Phương thức này không cần thiết nữa vì đã có findById(compositeKey)
+    // List<MessageStatus> findByMessageIdAndUserId(String messageId, String userId);
 
-    // Lấy trạng thái của tin nhắn theo người nhận và trạng thái
-    List<MessageStatus> findByUserIdAndStatus(String userId, String status);
+    // GỢI Ý 3: Tối ưu N+1 query khi lấy trạng thái theo user và status
+    @Query("SELECT ms FROM MessageStatus ms JOIN FETCH ms.message WHERE ms.user.id = :userId AND ms.status = :status")
+    List<MessageStatus> findAllByUserIdAndStatusWithMessage(@Param("userId") String userId, @Param("status") String status);
 }

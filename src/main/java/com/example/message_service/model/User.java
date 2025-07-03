@@ -1,7 +1,11 @@
 package com.example.message_service.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.security.core.GrantedAuthority;
@@ -12,17 +16,33 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
+// GỢI Ý 2: Thay thế @Data để tránh các vấn đề tiềm ẩn với JPA.
+// @EqualsAndHashCode(of = "id") đảm bảo hai User object chỉ bằng nhau khi id giống nhau.
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode(of = "id")
 @Entity
-@Table(name = "users")
-@Data
+// GỢI Ý 1: Thêm Index để tăng tốc độ tìm kiếm.
+// Index cho email (dùng để đăng nhập), phoneNumber (dùng để tìm kiếm), và displayName.
+@Table(name = "users", indexes = {
+        @Index(name = "idx_user_email", columnList = "email"),
+        @Index(name = "idx_user_phonenumber", columnList = "phoneNumber"),
+        @Index(name = "idx_user_displayname", columnList = "displayName")
+})
 public class User implements UserDetails {
 
     @Id
+    // GỢI Ý 3: Đánh dấu cột id là không thể cập nhật để tăng tính toàn vẹn dữ liệu.
+    @Column(updatable = false)
     private String id;
 
     @PrePersist
     public void generateId() {
-        this.id = UUID.randomUUID().toString();
+        if (this.id == null) { // Thêm kiểm tra để tránh ghi đè id đã có
+            this.id = UUID.randomUUID().toString();
+        }
     }
 
     @Column(nullable = false)
@@ -41,13 +61,16 @@ public class User implements UserDetails {
     private String status = "active";
 
     @CreationTimestamp
+    // GỢI Ý 3: createdAt cũng là trường không thể cập nhật.
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
+    @Column(nullable = false)
     private LocalDateTime updatedAt;
 
-    // Spring Security dùng phương thức này để lấy "username"
-    // Bạn trả về email để dùng email đăng nhập
+    // --- Các phương thức của UserDetails được giữ nguyên ---
+
     @Override
     public String getUsername() {
         return this.email;
@@ -55,12 +78,12 @@ public class User implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(); // hoặc return roles nếu có
+        return List.of();
     }
 
     @Override
     public boolean isAccountNonExpired() {
-        return true; // tùy hệ thống có kiểm tra hay không
+        return true;
     }
 
     @Override
@@ -75,6 +98,6 @@ public class User implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return this.status.equalsIgnoreCase("active");
+        return "active".equalsIgnoreCase(this.status); // Dùng equalsIgnoreCase an toàn hơn
     }
 }

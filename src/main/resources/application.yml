@@ -1,3 +1,12 @@
+# ===================================================================
+# SERVER & APPLICATION CONFIGURATION
+# ===================================================================
+server:
+  port: 8885
+  # GỢI Ý: Sử dụng context-path là cách chuẩn của Spring để thêm tiền tố /api cho tất cả các endpoint
+  servlet:
+    context-path: /api
+
 spring:
   application:
     name: message-service
@@ -5,48 +14,109 @@ spring:
     multipart:
       max-file-size: 100MB
       max-request-size: 100MB
-
   jackson:
     time-zone: Asia/Ho_Chi_Minh
     date-format: yyyy-MM-dd'T'HH:mm:ss
 
+  # ===================================================================
+  # DATABASE & JPA CONFIGURATION
+  # ===================================================================
   datasource:
-    url: ${DB_URL:}
-    username: ${DB_USERNAME:}
-    password: ${DB_PASSWORD:}
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
+    # GỢI Ý: 'update' rất tiện cho dev, nhưng trong production nên dùng 'validate' hoặc 'none'
+    # và quản lý schema bằng các công cụ migration như Flyway hoặc Liquibase.
     hibernate:
-              ddl-auto: update
+      ddl-auto: update
     properties:
-      hibernate.dialect: org.hibernate.dialect.MySQL8Dialect
-      hibernate.jdbc.time_zone: Asia/Ho_Chi_Minh
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+        jdbc:
+          time_zone: Asia/Ho_Chi_Minh
+    # GỢI Ý: Bật các dòng này khi bạn cần debug các câu lệnh SQL để tìm lỗi N+1
+    # show-sql: true
 
+  # GỢI Ý: Thêm logging level để xem SQL và các tham số một cách rõ ràng hơn
+  # logging:
+  #  level:
+  #    org.hibernate.SQL: DEBUG
+  #    org.hibernate.type.descriptor.sql: TRACE
+
+  # ===================================================================
+  # CACHING CONFIGURATION (RẤT QUAN TRỌNG CHO HIỆU NĂNG)
+  # ===================================================================
+  cache:
+    type: caffeine # Chỉ định dùng Caffeine Cache
+    # Khai báo trước các vùng cache chúng ta đã sử dụng
+    cache-names:
+      - users
+      - friends
+      - pendingRequests
+      - conversationMembers
+      - userConversations
+      - messageStatuses
+      - attachments
+    caffeine:
+      # Cấu hình cho cache:
+      # - initialCapacity: Số lượng entry khởi tạo
+      # - maximumSize: Số lượng entry tối đa trong cache
+      # - expireAfterWrite: Dữ liệu sẽ bị xóa khỏi cache sau 10 phút kể từ lần ghi cuối cùng
+      spec: initialCapacity=100,maximumSize=5000,expireAfterWrite=10m
+
+  # ===================================================================
+  # ASYNC TASK EXECUTOR CONFIGURATION (QUAN TRỌNG CHO @Async)
+  # ===================================================================
+  task:
+    execution:
+      pool:
+        core-size: 4  # Số luồng luôn chạy
+        max-size: 16  # Số luồng tối đa có thể tạo
+        queue-capacity: 100 # Số tác vụ có thể chờ trong hàng đợi
+      thread-name-prefix: async-task- # Tiền tố cho tên luồng, giúp dễ debug
+
+  # ===================================================================
+  # REDIS CONFIGURATION (Dùng cho JWT Token)
+  # ===================================================================
   data:
     redis:
       host: localhost
       port: 6379
       timeout: 6000
 
+  # ===================================================================
+  # THYMELEAF CONFIGURATION (CÂN NHẮC XÓA)
+  # ===================================================================
+  # GỢI Ý: Ứng dụng của bạn là một API backend trả về JSON.
+  # Thymeleaf dùng để render HTML ở phía server. Nếu bạn không dùng,
+  # hãy xóa cả block này và dependency 'spring-boot-starter-thymeleaf'
+  # trong pom.xml để làm nhẹ ứng dụng.
   thymeleaf:
     prefix: classpath:/templates/
     suffix: .html
     mode: HTML
     cache: false
 
-
-server:
-  port: 8885
-
+# ===================================================================
+# CUSTOM APPLICATION PROPERTIES
+# ===================================================================
 jwt:
-  expiration: 3600000
+  expiration: 3600000 # 1 giờ
   private-key: ${JWT_PRIVATE_KEY}
   public-key: ${JWT_PUBLIC_KEY}
 
-api:
-  prefix: api
+# Thuộc tính mới cho FileStorageService
+file:
+  # Đây là thư mục GỐC để lưu tất cả các file upload.
+  # FileStorageService sẽ tự tạo các thư mục con như 'avatars', 'images', 'videos' bên trong nó.
+  upload-dir: ./uploads
 
-user:
-  avatar:
-    upload-dir: uploads/avatar
+# Bạn không cần các thuộc tính này nữa vì đã được hợp nhất vào file.upload-dir
+# api:
+#   prefix: api
+# user:
+#   avatar:
+#     upload-dir: uploads/avatar

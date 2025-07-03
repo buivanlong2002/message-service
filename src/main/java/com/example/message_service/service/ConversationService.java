@@ -6,268 +6,198 @@ import com.example.message_service.dto.response.ConversationResponse;
 import com.example.message_service.dto.response.LastMessageInfo;
 import com.example.message_service.model.*;
 import com.example.message_service.repository.*;
-
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.*;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.transaction.annotation.Transactional;
+import com.example.message_service.dto.request.CreateConversationRequest;
 
-import java.io.IOException;
-import java.nio.file.*;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
+@RequiredArgsConstructor // Sử dụng constructor injection, không cần @Autowired
 public class ConversationService {
 
-    @Autowired
-    private ConversationRepository conversationRepository;
-
-    @Autowired
-    private ConversationMemberRepository conversationMemberRepository;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private ConversationMemberService conversationMemberService;
-
-    @Autowired
-    private MessageRepository messageRepository;
-
+    private final ConversationRepository conversationRepository;
+    private final ConversationMemberRepository conversationMemberRepository;
+    private final UserRepository userRepository;
+    // Xóa dependency vòng với ConversationMemberService nếu có thể
 
     // ----------------- CREATE --------------------
+    @Transactional
+// Khi một cuộc trò chuyện mới được tạo, cache danh sách của tất cả các thành viên liên quan phải được xóa.
+    @CacheEvict(value = "userConversations", allEntries = true) // allEntries = true là cách đơn giản nhất
+    public ApiResponse<ConversationResponse> createConversation(CreateConversationRequest request) {
+        try {
+            Conversation conversation;
+            if (request.isGroup()) {
+                // Logic tạo nhóm
+                if (request.getName() == null || request.getName().isBlank()) {
+                    return ApiResponse.error("11", "Tên nhóm là bắt buộc");
+                }
+                conversation = createGroup(request);
+            } else {
+                // Logic tạo chat 1-1
+                if (request.getMemberIds() == null || request.getMemberIds().size() != 2) {
+                    return ApiResponse.error("12", "Chat 1-1 yêu cầu chính xác 2 thành viên");
+                }
+                // Gọi lại phương thức getOrCreate để tận dụng logic tìm kiếm
+                String userId1 = request.getMemberIds().get(0);
+                String userId2 = request.getMemberIds().get(1);
+                conversation = getOrCreateOneToOneConversation(userId1, userId2);
+            }
 
-    public Conversation createGroupConversation(String name, String createdBy) {
+            // Chuyển đổi entity đã lưu sang DTO để trả về
+            ConversationResponse responseDto = toConversationResponse(conversation, request.getCreatedBy());
+            return ApiResponse.success("00", "Tạo cuộc trò chuyện thành công", responseDto);
+
+        } catch (Exception e) {
+            // Log lỗi ở đây
+            return ApiResponse.error("99", "Đã có lỗi xảy ra khi tạo cuộc trò chuyện: " + e.getMessage());
+        }
+    }
+
+
+    /**
+     * Helper method để xử lý logic tạo nhóm.
+     */
+    private Conversation createGroup(CreateConversationRequest request) {
         Conversation conversation = new Conversation();
-        conversation.setName(name);
         conversation.setGroup(true);
-        conversation.setCreatedBy(createdBy);
-        conversation.setCreatedAt(LocalDateTime.now());
+        conversation.setName(request.getName());
+        conversation.setCreatedBy(request.getCreatedBy());
 
-        Conversation saved = conversationRepository.save(conversation);
-        conversationMemberService.addCreatorToConversation(saved);
-        return saved;
+        // Lấy danh sách User object từ memberIds
+        List<User> members = userRepository.findAllById(request.getMemberIds());
+        if (members.size() != request.getMemberIds().size()) {
+            throw new RuntimeException("Một hoặc nhiều user ID không hợp lệ.");
+        }
+
+        // Tạo các ConversationMember object
+        List<ConversationMember> conversationMembers = members.stream().map(user -> {
+            ConversationMember member = new ConversationMember();
+            member.setConversation(conversation);
+            member.setUser(user);
+            // Gán vai trò 'creator' cho người tạo, còn lại là 'member'
+            String role = user.getId().equals(request.getCreatedBy()) ? "creator" : "member";
+            member.setRole(role);
+            return member;
+        }).collect(Collectors.toList());
+
+        conversation.setMembers(conversationMembers);
+        return conversationRepository.save(conversation);
     }
 
-    public Conversation getOrCreateOneToOneConversation(String senderId, String receiverId) {
-        Optional<Conversation> existing = findOneToOneConversation(senderId, receiverId);
-        if (existing.isPresent()) return existing.get();
+    @Transactional
+    public Conversation getOrCreateOneToOneConversation(String userId1, String userId2) {
+        // Dùng query đã tối ưu
+        return conversationRepository.findOneToOneConversation(userId1, userId2)
+                .orElseGet(() -> {
+                    User user1 = userRepository.findById(userId1).orElseThrow();
+                    User user2 = userRepository.findById(userId2).orElseThrow();
 
-        Conversation conversation = new Conversation();
-        conversation.setGroup(false);
-        conversation.setName(null);
-        conversation.setCreatedBy(senderId);
-        conversation.setCreatedAt(LocalDateTime.now());
+                    Conversation conversation = new Conversation();
+                    conversation.setGroup(false);
+                    conversation.setCreatedBy(userId1);
 
-        Conversation saved = conversationRepository.save(conversation);
-        conversationMemberService.addMemberToConversation(saved, senderId, "member");
-        conversationMemberService.addMemberToConversation(saved, receiverId, "member");
+                    ConversationMember member1 = new ConversationMember();
+                    member1.setConversation(conversation);
+                    member1.setUser(user1);
+                    member1.setRole("member");
 
-        return saved;
-    }
+                    ConversationMember member2 = new ConversationMember();
+                    member2.setConversation(conversation);
+                    member2.setUser(user2);
+                    member2.setRole("member");
 
-    public Conversation createDynamicGroupFromMessage(String senderId, String receiverId) {
-        Optional<User> senderOpt = userRepository.findById(senderId);
-        if (senderOpt.isEmpty()) throw new RuntimeException("Sender not found");
+                    conversation.getMembers().add(member1);
+                    conversation.getMembers().add(member2);
 
-        Conversation group = new Conversation();
-        group.setGroup(true);
-        group.setName(senderOpt.get().getDisplayName());
-        group.setCreatedBy(senderId);
-        group.setCreatedAt(LocalDateTime.now());
-
-        Conversation saved = conversationRepository.save(group);
-        conversationMemberService.addMemberToConversation(saved, senderId, "member");
-        conversationMemberService.addMemberToConversation(saved, receiverId, "member");
-
-        return saved;
+                    return conversationRepository.save(conversation);
+                });
     }
 
     // ----------------- UPDATE --------------------
-
+    @Transactional
+    @CacheEvict(value = "userConversations", allEntries = true) // Xóa cache khi có thay đổi
     public ApiResponse<ConversationResponse> updateConversation(String conversationId, UpdateConversationRequest request) {
-        Optional<Conversation> optional = conversationRepository.findById(conversationId);
-        if (optional.isEmpty()) {
-            return ApiResponse.error("04", "Không tìm thấy cuộc trò chuyện với ID: " + conversationId);
-        }
-
-        Conversation conversation = optional.get();
-        conversation.setName(request.getName());
-        conversation.setGroup(request.isGroup());
-        conversationRepository.save(conversation);
-
-        ConversationResponse dto = toConversationResponse(conversation, null, null);
-        return ApiResponse.success("00", "Cập nhật cuộc trò chuyện thành công", dto);
-    }
-
-    public ApiResponse<String> updateGroupAvatar(String conversationId, MultipartFile file) {
-        Optional<Conversation> optional = conversationRepository.findById(conversationId);
-        if (optional.isEmpty()) {
-            return ApiResponse.error("04", "Không tìm thấy cuộc trò chuyện");
-        }
-
-        Conversation conversation = optional.get();
-        if (!conversation.isGroup()) {
-            return ApiResponse.error("05", "Chỉ nhóm mới được cập nhật ảnh đại diện");
-        }
-
-        try {
-            String originalFilename = Path.of(file.getOriginalFilename()).getFileName().toString();
-            String fileName = UUID.randomUUID() + "_" + originalFilename;
-            String uploadDir = "uploads/conversations/";
-
-            Files.createDirectories(Paths.get(uploadDir));
-            Path filePath = Paths.get(uploadDir).resolve(fileName);
-            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-
-            String avatarUrl = "/uploads/conversations/" + fileName;
-            conversation.setAvatarUrl(avatarUrl);
-            conversationRepository.save(conversation);
-
-            return ApiResponse.success("00", "Cập nhật ảnh đại diện nhóm thành công", avatarUrl);
-
-        } catch (IOException e) {
-            return ApiResponse.error("06", "Lỗi khi upload ảnh đại diện nhóm");
-        }
-    }
-
-    public void archiveConversation(String conversationId) {
-        conversationRepository.findById(conversationId).ifPresent(c -> {
-            c.setArchived(true);
-            conversationRepository.save(c);
-        });
+        return conversationRepository.findById(conversationId)
+                .map(conversation -> {
+                    conversation.setName(request.getName());
+                    // Logic update khác nếu cần
+                    Conversation updatedConv = conversationRepository.save(conversation);
+                    ConversationResponse dto = toConversationResponse(updatedConv, updatedConv.getCreatedBy());
+                    return ApiResponse.success("00", "Cập nhật thành công", dto);
+                })
+                .orElse(ApiResponse.error("04", "Không tìm thấy cuộc trò chuyện"));
     }
 
     // ----------------- GET --------------------
-
+    @Transactional(readOnly = true)
+    @Cacheable(value = "userConversations", key = "#userId")
     public ApiResponse<List<ConversationResponse>> getConversationsByUser(String userId) {
-        Optional<User> userOpt = userRepository.findById(userId);
-        if (userOpt.isEmpty()) {
+        if (!userRepository.existsById(userId)) {
             return ApiResponse.error("03", "Không tìm thấy người dùng: " + userId);
         }
 
-        List<ConversationMember> members = conversationMemberRepository.findByUserId(userId);
-        List<Conversation> conversations = members.stream()
-                .map(ConversationMember::getConversation)
-                .filter(Objects::nonNull)
-                .distinct()
-                .collect(Collectors.toList());
-
-        // Lấy last message cho mỗi conversation
-        Map<String, Message> lastMessages = new HashMap<>();
-        for (Conversation conv : conversations) {
-            Message lastMsg = messageRepository.findTopByConversationIdOrderByCreatedAtDesc(conv.getId());
-            if (lastMsg != null) {
-                lastMessages.put(conv.getId(), lastMsg);
-            }
+        // Bước 1: Lấy danh sách conversation và lastMessage trong 1 query
+        List<Conversation> conversations = conversationRepository.findConversationsByUserId(userId);
+        if (conversations.isEmpty()) {
+            return ApiResponse.success("00", "Không có cuộc trò chuyện nào", List.of());
         }
 
+        // Bước 2: Lấy tất cả thành viên của các conversation trên trong 1 query
+        List<Conversation> conversationsWithMembers = conversationRepository.findConversationsWithMembers(conversations);
+
+        // Tạo một Map để dễ dàng tra cứu conversation đã có đủ thành viên
+        Map<String, Conversation> convMap = conversationsWithMembers.stream()
+                .collect(Collectors.toMap(Conversation::getId, Function.identity()));
+
+        // Bước 3: Chuyển đổi sang DTO (không có query DB nào ở đây)
         List<ConversationResponse> responses = conversations.stream()
-                .map(conv -> toConversationResponse(conv, userId, lastMessages.get(conv.getId())))
-                .sorted((a, b) -> {
-                    LocalDateTime timeA = a.getLastMessage() != null ? a.getLastMessage().getCreatedAt() : a.getCreatedAt();
-                    LocalDateTime timeB = b.getLastMessage() != null ? b.getLastMessage().getCreatedAt() : b.getCreatedAt();
-                    return timeB.compareTo(timeA); // Mới nhất lên đầu
+                .map(conv -> {
+                    Conversation fullConv = convMap.get(conv.getId());
+                    return toConversationResponse(fullConv, userId);
                 })
                 .collect(Collectors.toList());
 
         return ApiResponse.success("00", "Lấy danh sách cuộc trò chuyện thành công", responses);
     }
 
-    public ApiResponse<List<ConversationResponse>> getConversationsByUserPaged(String userId, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<Conversation> conversationPage = conversationRepository.findConversationById(userId, pageable);
-
-        List<ConversationResponse> responseList = conversationPage.getContent().stream().map(conversation -> {
-            Message lastMessage = messageRepository.findTopByConversationIdOrderByCreatedAtDesc(conversation.getId());
-
-            LastMessageInfo lastMessageInfo = null;
-            if (lastMessage != null) {
-                lastMessageInfo = new LastMessageInfo(
-                        lastMessage.getContent(),
-                        lastMessage.getSender().getDisplayName(),
-                        getTimeAgo(lastMessage.getCreatedAt()),
-                        lastMessage.getCreatedAt()
-                );
-            }
-
-            return new ConversationResponse(
-                    conversation.getId(),
-                    conversation.getName(),
-                    conversation.isGroup(),
-                    conversation.getAvatarUrl(),
-                    conversation.getCreatedAt(),
-                    lastMessageInfo
-            );
-        }).collect(Collectors.toList());
-
-        return ApiResponse.success("00", "Lấy danh sách nhóm thành công", responseList);
-    }
-
-    public ApiResponse<List<ConversationResponse>> getConversationsRealTimeByUser(String userId) {
-        List<ConversationMember> members = conversationMemberRepository.findByUserId(userId);
-        List<ConversationResponse> results = new ArrayList<>();
-
-        for (ConversationMember member : members) {
-            Conversation conversation = member.getConversation();
-            if (conversation == null) continue;
-
-            Message lastMessage = messageRepository.findTopByConversationIdOrderByCreatedAtDesc(conversation.getId());
-            ConversationResponse response = toConversationResponse(conversation, userId, lastMessage);
-            results.add(response);
-        }
-
-        results.sort(Comparator.comparing((ConversationResponse cr) -> {
-            LocalDateTime t = cr.getLastMessage() != null ? cr.getLastMessage().getCreatedAt() : cr.getCreatedAt();
-            return t;
-        }).reversed());
-
-        return ApiResponse.success("00", "Lấy danh sách cuộc trò chuyện thành công", results);
-    }
-
     // ----------------- HELPER --------------------
 
-    private Optional<Conversation> findOneToOneConversation(String userId1, String userId2) {
-        return conversationMemberRepository.findByUserId(userId1).stream()
-                .map(ConversationMember::getConversation)
-                .filter(conv -> !conv.isGroup())
-                .filter(conv -> {
-                    List<ConversationMember> members = conversationMemberRepository.findByConversationId(conv.getId());
-                    return members.size() == 2 && members.stream().anyMatch(m -> m.getUser().getId().equals(userId2));
-                })
-                .findFirst();
-    }
-
-    private ConversationResponse toConversationResponse(Conversation conversation, String requesterId, Message lastMessage) {
+    // Helper đã được tối ưu, không cần tham số lastMessage
+    private ConversationResponse toConversationResponse(Conversation conversation, String requesterId) {
         String name;
-        String avatarUrl = null;
-
-        List<ConversationMember> members = conversationMemberRepository.findByConversationId(conversation.getId());
+        String avatarUrl;
+        Message lastMessage = conversation.getLastMessage(); // Lấy từ object đã được fetch
 
         if (conversation.isGroup()) {
             name = conversation.getName();
             avatarUrl = conversation.getAvatarUrl();
         } else {
-            Optional<User> partnerOpt = members.stream()
+            // Tìm đối tác chat từ danh sách thành viên đã được fetch
+            User partner = conversation.getMembers().stream()
                     .map(ConversationMember::getUser)
                     .filter(user -> !user.getId().equals(requesterId))
-                    .findFirst();
-            User partner = partnerOpt.orElse(null);
-            name = partner != null ? partner.getDisplayName() : "Cuộc trò chuyện";
-            avatarUrl = partner != null ? partner.getAvatarUrl() : null;
+                    .findFirst()
+                    .orElse(null); // Hoặc ném lỗi nếu không tìm thấy
+
+            name = (partner != null) ? partner.getDisplayName() : "Cuộc trò chuyện đã xóa";
+            avatarUrl = (partner != null) ? partner.getAvatarUrl() : null;
         }
 
         LastMessageInfo lastMessageInfo = null;
         if (lastMessage != null) {
             lastMessageInfo = new LastMessageInfo(
                     lastMessage.getContent(),
-                    lastMessage.getSender().getDisplayName(),
+                    lastMessage.getSender() != null ? lastMessage.getSender().getDisplayName() : "Người dùng đã xóa",
                     getTimeAgo(lastMessage.getCreatedAt()),
                     lastMessage.getCreatedAt()
             );
@@ -278,11 +208,12 @@ public class ConversationService {
                 name,
                 conversation.isGroup(),
                 avatarUrl,
-                conversation.getCreatedAt(),
+                conversation.getUpdatedAt(), // Sắp xếp theo updatedAt
                 lastMessageInfo
         );
     }
 
+    // getTimeAgo giữ nguyên
     private String getTimeAgo(LocalDateTime createdAt) {
         Duration duration = Duration.between(createdAt, LocalDateTime.now());
         if (duration.toMinutes() < 1) return "Vừa xong";
@@ -290,5 +221,4 @@ public class ConversationService {
         if (duration.toDays() < 1) return duration.toHours() + " giờ trước";
         return duration.toDays() + " ngày trước";
     }
-
 }

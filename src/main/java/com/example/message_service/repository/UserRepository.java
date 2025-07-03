@@ -13,6 +13,8 @@ public interface UserRepository extends JpaRepository<User, String> {
     Optional<User> findByEmail(String email);  // Tìm theo email
     Optional<User> findByPhoneNumber(String phoneNumber);  // Tìm theo số điện thoại
 
-
-
+    // GỢI Ý 2: Thêm các phương thức kiểm tra tồn tại.
+    // JPA sẽ tối ưu các query này để chạy nhanh hơn findBy...
+    boolean existsByEmail(String email);
+    boolean existsByPhoneNumber(String phoneNumber);
 }

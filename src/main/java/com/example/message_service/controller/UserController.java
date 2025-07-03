@@ -1,51 +1,46 @@
 package com.example.message_service.controller;
 
+import com.example.message_service.dto.ApiResponse; // Import
 import com.example.message_service.model.User;
-import com.example.message_service.repository.UserRepository;
+import com.example.message_service.service.UserService; // Import UserService
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.io.IOException;
-import java.nio.file.*;
-import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/users")
 public class UserController {
 
-    private final UserRepository userRepository;
+    // Bỏ UserRepository và @Value, thay bằng UserService
+    private final UserService userService;
 
-    @Value("${user.avatar.upload-dir}")
-    private String uploadDir;
-
+    /**
+     * Upload avatar cho người dùng đang đăng nhập.
+     * Controller chỉ nhận request và ủy quyền cho Service.
+     */
     @PostMapping("/avatar")
-    public ResponseEntity<?> uploadAvatar(@RequestParam("file") MultipartFile file,
-                                          @AuthenticationPrincipal User user) {
-        try {
-            // Đảm bảo thư mục tồn tại
-            Path directory = Paths.get(uploadDir);
-            Files.createDirectories(directory);
+    public ResponseEntity<ApiResponse<String>> uploadAvatar(
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal User user) {
 
-            // Đặt tên file duy nhất
-            String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
-            Path filePath = directory.resolve(fileName);
+        // Gọi service để xử lý toàn bộ logic
+        ApiResponse<String> response = userService.updateUserAvatar(user.getId(), file);
 
-            // Ghi file lên ổ đĩa
-            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+        // Trả về response một cách nhất quán
+        return buildResponse(response);
+    }
 
-            // Lưu URL tương đối vào DB (ví dụ: /uploads/...)
-            String avatarUrl = "/uploads/avatar/" + fileName;
-            user.setAvatarUrl(avatarUrl);
-            userRepository.save(user);
-
-            return ResponseEntity.ok().body(avatarUrl);
-        } catch (IOException e) {
-            return ResponseEntity.status(500).body("Lỗi khi upload avatar");
+    /**
+     * Phương thức helper để xây dựng ResponseEntity.
+     */
+    private <T> ResponseEntity<ApiResponse<T>> buildResponse(ApiResponse<T> response) {
+        if (response.getStatus().isSuccess()) {
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.badRequest().body(response);
         }
     }
 }
