@@ -5,7 +5,17 @@ spring:
     multipart:
       max-file-size: 100MB
       max-request-size: 100MB
-
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: hoang1111uuu@gmail.com
+    password: mbae ylxt xllb jkdv
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
   jackson:
     time-zone: Asia/Ho_Chi_Minh
     date-format: yyyy-MM-dd'T'HH:mm:ss

@@ -48,6 +48,8 @@ public class WebSecurityConfig {
                                 // Public API endpoints
                                 String.format("%s/auth/login", apiPrefix),
                                 String.format("%s/auth/register", apiPrefix),
+                                String.format("%s/auth/forgot-password", apiPrefix),
+                                String.format("%s/auth/reset-password", apiPrefix),
                                 String.format("%s/login", apiPrefix),
                                 String.format("%s/profile", apiPrefix),
                                 String.format("%s/register", apiPrefix),
