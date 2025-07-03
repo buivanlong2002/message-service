@@ -32,6 +32,11 @@ public class WebSocketController {
             userId = userId.substring(1, userId.length() - 1);
         }
 
+        if (userId == null || userId.isEmpty()) {
+            log.warn("userId không hợp lệ: {}", userId);
+            return;
+        }
+
         log.info("WebSocket yêu cầu danh sách cuộc trò chuyện cho userId={}", userId);
         pushNewMessage.pushUpdatedConversationsToUser(userId);
     }
@@ -47,18 +52,25 @@ public class WebSocketController {
         String userId = request.getUserId();
         int page = request.getPage();
         int size = request.getSize();
+        String afterTimestamp = request.getAfterTimestamp(); // Thêm tham số này
 
-        log.info("WebSocket yêu cầu tin nhắn cho conversationId={} từ userId={} (page={}, size={})",
-                conversationId, userId, page, size);
+        if (conversationId == null || userId == null || conversationId.isEmpty() || userId.isEmpty()) {
+            log.warn("conversationId hoặc userId không hợp lệ: conversationId={}, userId={}", conversationId, userId);
+            return;
+        }
 
-        ApiResponse<List<MessageResponse>> response =
-                messageService.getMessagesByConversation(conversationId, page, size);
+        log.info("WebSocket yêu cầu tin nhắn cho conversationId={} từ userId={} (page={}, size={}, afterTimestamp={})",
+                conversationId, userId, page, size, afterTimestamp);
+
+        ApiResponse<List<MessageResponse>> response = messageService.getMessagesByConversation(
+                conversationId, page, size);
 
         String destination = "/topic/messages/" + conversationId + "/" + userId;
-        if (response.getData() != null) {
+        if (response.getData() != null && !response.getData().isEmpty()) {
             pushNewMessage.pushMessagesOfConversationToUser(userId, conversationId);
         } else {
             log.warn("Không có tin nhắn nào cho conversationId={} và userId={}", conversationId, userId);
+            pushNewMessage.pushMessagesOfConversationToUser(userId, conversationId);
         }
     }
 }
