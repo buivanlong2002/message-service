@@ -82,6 +82,8 @@ public class JwtTokenFilter extends OncePerRequestFilter {
         final List<Pair<String, String>> bypassTokens = Arrays.asList(
                 Pair.of(String.format("%s/auth/register", apiPrefix), "POST"),
                 Pair.of(String.format("%s/auth/login", apiPrefix), "POST"),
+                Pair.of(String.format("%s/auth/forgot-password", apiPrefix), "POST"),
+                Pair.of(String.format("%s/auth/reset-password", apiPrefix), "POST"),
                 Pair.of(String.format("%s/login", apiPrefix), "GET"),
                 Pair.of(String.format("%s/profile", apiPrefix), "GET"),
                 Pair.of(String.format("%s/register", apiPrefix), "GET"),

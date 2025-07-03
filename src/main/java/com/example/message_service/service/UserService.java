@@ -4,19 +4,27 @@ import com.example.message_service.components.JwtTokenUtil;
 import com.example.message_service.dto.ApiResponse;
 import com.example.message_service.dto.request.RegisterRequest;
 import com.example.message_service.infrastructure.RedisToken;
+import com.example.message_service.model.PasswordResetToken;
 import com.example.message_service.model.User;
+import com.example.message_service.repository.PasswordResetTokenRepository;
 import com.example.message_service.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class UserService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private PasswordResetTokenRepository passwordResetTokenRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -26,6 +34,9 @@ public class UserService {
 
     @Autowired
     private RedisToken redisToken;
+
+    @Autowired
+    private EmailService emailService;
 
     /**
      * Đăng nhập người dùng và sinh token
@@ -55,7 +66,6 @@ public class UserService {
      * Đăng ký người dùng mới
      */
     public ApiResponse<String> registerUser(RegisterRequest request) {
-
         if (userRepository.findByPhoneNumber(request.getPhoneNumber()).isPresent()) {
             return ApiResponse.error("02", "Số điện thoại đã được sử dụng");
         }
@@ -92,15 +102,65 @@ public class UserService {
     }
 
     public ApiResponse<String> logoutUser(String username, String token) {
-        // Kiểm tra token hợp lệ trước khi xóa
         if (!redisToken.isTokenValid(username, token)) {
             return ApiResponse.error("01", "Token không hợp lệ hoặc đã hết hạn");
         }
 
-        // Xóa token khỏi Redis (logout)
         redisToken.deleteToken(username);
         return ApiResponse.success("00", "Logout thành công", null);
     }
 
+    // ========== QUÊN MẬT KHẨU =================
+
+    @Transactional
+    public ApiResponse<String> requestPasswordReset(String email) {
+        Optional<User> userOpt = userRepository.findByEmail(email);
+
+        if (userOpt.isEmpty()) {
+            // Trả về thành công luôn để tránh dò email
+            return ApiResponse.success("00", "Nếu email tồn tại, hướng dẫn đã được gửi.");
+        }
+
+        User user = userOpt.get();
+
+        // Xóa token cũ nếu có
+        passwordResetTokenRepository.deleteByUser(user);
+
+        // Tạo token mới
+        String token = UUID.randomUUID().toString();
+        PasswordResetToken resetToken = new PasswordResetToken();
+        resetToken.setToken(token);
+        resetToken.setUser(user);
+        resetToken.setExpiryDate(LocalDateTime.now().plusMinutes(30));
+
+        passwordResetTokenRepository.save(resetToken);
+
+        // Gửi email
+        emailService.sendResetPasswordEmail(email, token);
+
+        return ApiResponse.success("00", "Nếu email tồn tại, hướng dẫn đã được gửi.");
+    }
+
+    @Transactional
+    public boolean resetPassword(String token, String newPassword) {
+        Optional<PasswordResetToken> tokenOpt = passwordResetTokenRepository.findByToken(token);
+
+        if (tokenOpt.isEmpty()) return false;
+
+        PasswordResetToken resetToken = tokenOpt.get();
+
+        if (resetToken.getExpiryDate().isBefore(LocalDateTime.now())) {
+            return false; // Token hết hạn
+        }
+
+        User user = resetToken.getUser();
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        // Xoá token sau khi sử dụng
+        passwordResetTokenRepository.delete(resetToken);
+
+        return true;
+    }
 
 }
