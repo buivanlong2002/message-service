@@ -118,19 +118,32 @@ public class ConversationService {
         }
 
         Conversation conversation = optional.get();
+
+        // Kiểm tra phải là nhóm
         if (!conversation.isGroup()) {
             return ApiResponse.error("05", "Chỉ nhóm mới được cập nhật ảnh đại diện");
         }
 
+        // Kiểm tra quyền: chỉ creator mới được phép cập nhật
+        Optional<ConversationMember> creatorOpt =
+                conversationMemberRepository.findByConversationIdAndUserId(conversationId, conversation.getCreatedBy());
+
+        if (creatorOpt.isEmpty() || !creatorOpt.get().getRole().equalsIgnoreCase("creator")) {
+            return ApiResponse.error("06", "Chỉ người tạo nhóm mới được phép đổi ảnh đại diện");
+        }
+
         try {
+            // Tạo đường dẫn lưu ảnh
             String originalFilename = Path.of(file.getOriginalFilename()).getFileName().toString();
             String fileName = UUID.randomUUID() + "_" + originalFilename;
             String uploadDir = "uploads/conversations/";
-
             Files.createDirectories(Paths.get(uploadDir));
+
+            // Lưu file
             Path filePath = Paths.get(uploadDir).resolve(fileName);
             Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
+            // Lưu đường dẫn tương đối vào DB
             String avatarUrl = "/uploads/conversations/" + fileName;
             conversation.setAvatarUrl(avatarUrl);
             conversationRepository.save(conversation);
@@ -138,9 +151,10 @@ public class ConversationService {
             return ApiResponse.success("00", "Cập nhật ảnh đại diện nhóm thành công", avatarUrl);
 
         } catch (IOException e) {
-            return ApiResponse.error("06", "Lỗi khi upload ảnh đại diện nhóm");
+            return ApiResponse.error("07", "Lỗi khi upload ảnh đại diện nhóm");
         }
     }
+
 
     public void archiveConversation(String conversationId) {
         conversationRepository.findById(conversationId).ifPresent(c -> {
@@ -318,6 +332,5 @@ public class ConversationService {
 
         return ApiResponse.success("00", "Lấy danh sách tin nhắn thành công", messageResponses);
     }
-
 
 }
