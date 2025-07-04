@@ -9,10 +9,18 @@ import com.example.message_service.model.User;
 import com.example.message_service.repository.PasswordResetTokenRepository;
 import com.example.message_service.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
@@ -37,6 +45,9 @@ public class UserService {
 
     @Autowired
     private EmailService emailService;
+
+    @Value("${user.avatar.upload-dir}")
+    private String uploadDir;
 
     /**
      * Đăng nhập người dùng và sinh token
@@ -109,6 +120,26 @@ public class UserService {
         redisToken.deleteToken(username);
         return ApiResponse.success("00", "Logout thành công", null);
     }
+
+    public ResponseEntity<?> uploadAvatar(MultipartFile file, User user) {
+        try {
+            Path directory = Paths.get(uploadDir);
+            Files.createDirectories(directory);
+
+            String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
+            Path filePath = directory.resolve(fileName);
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+            String avatarUrl = "/uploads/avatar/" + fileName;
+            user.setAvatarUrl(avatarUrl);
+            userRepository.save(user);
+
+            return ResponseEntity.ok().body(avatarUrl);
+        } catch (IOException e) {
+            return ResponseEntity.status(500).body("Lỗi khi upload avatar");
+        }
+    }
+
 
     // ========== QUÊN MẬT KHẨU =================
 

@@ -24,7 +24,7 @@ public class ConversationController {
     @Autowired
     private ConversationMemberService conversationMemberService;
 
-    // Tạo nhóm
+    // Tạo nhóm mới
     @PostMapping("/create-group")
     public ResponseEntity<Conversation> createGroupConversation(
             @RequestParam String name,
@@ -51,22 +51,23 @@ public class ConversationController {
         return ResponseEntity.ok(response);
     }
 
-    // Lưu trữ nhóm
+    // Lưu trữ cuộc trò chuyện (ẩn)
     @PutMapping("/{conversationId}/archive")
     public ResponseEntity<String> archiveConversation(@PathVariable String conversationId) {
         conversationService.archiveConversation(conversationId);
         return ResponseEntity.ok("Conversation archived");
     }
 
-    // Upload avatar nhóm
-    @PostMapping("/{id}/avatar")
-    public ResponseEntity<?> uploadGroupAvatar(@PathVariable String id,
-                                               @RequestParam("file") MultipartFile file) {
+    // Upload avatar nhóm (chỉ người tạo nhóm được phép)
+    @PostMapping("/groups/{id}/avatar")
+    public ResponseEntity<ApiResponse<String>> uploadGroupAvatar(@PathVariable String id,
+                                                                 @RequestParam("file") MultipartFile file) {
         ApiResponse<String> response = conversationService.updateGroupAvatar(id, file);
-        return ResponseEntity.status(response.getStatus().isSuccess() ? 200 : 400).body(response);
+        HttpStatus status = response.getStatus().isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+        return new ResponseEntity<>(response, status);
     }
 
-    // (Cũ) Lấy tất cả nhóm của người dùng (không phân trang)
+    // Lấy tất cả cuộc trò chuyện của người dùng (không phân trang)
     @GetMapping("/user/{userId}")
     public ResponseEntity<ApiResponse<List<ConversationResponse>>> getConversationsByUser(
             @PathVariable String userId) {
@@ -74,7 +75,7 @@ public class ConversationController {
         return ResponseEntity.ok(response);
     }
 
-    // (Mới) Phân trang danh sách nhóm theo user
+    // Lấy danh sách cuộc trò chuyện có phân trang
     @GetMapping("/user/{userId}/paged")
     public ResponseEntity<ApiResponse<List<ConversationResponse>>> getPagedConversationsByUser(
             @PathVariable String userId,
