@@ -1,6 +1,5 @@
 package com.example.message_service.components;
 
-
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -41,19 +40,26 @@ public class KeyProvider {
     }
 
     private PrivateKey loadPrivateKey(String pem) throws Exception {
-        pem = pem.replace("\\n", "\n");
+        pem = normalizePem(pem);
         byte[] keyBytes = decodePem(pem, "PRIVATE KEY");
         PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(keyBytes);
         return KeyFactory.getInstance("RSA").generatePrivate(spec);
     }
 
     private PublicKey loadPublicKey(String pem) throws Exception {
-        pem = pem.replace("\\n", "\n");
+        pem = normalizePem(pem);
         byte[] keyBytes = decodePem(pem, "PUBLIC KEY");
         X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
         return KeyFactory.getInstance("RSA").generatePublic(spec);
     }
 
+    private String normalizePem(String pem) {
+        // Nếu là chuỗi "-----BEGIN...\\n..." thì chuyển \\n thành newline thực
+        if (pem.contains("\\n")) {
+            pem = pem.replace("\\n", "\n");
+        }
+        return pem;
+    }
 
     private byte[] decodePem(String pemContent, String keyType) {
         return Base64.getDecoder().decode(
