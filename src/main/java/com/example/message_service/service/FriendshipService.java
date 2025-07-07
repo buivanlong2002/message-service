@@ -1,7 +1,9 @@
 package com.example.message_service.service;
 
 import com.example.message_service.dto.ApiResponse;
-import com.example.message_service.dto.request.FriendRequestRequest;
+import com.example.message_service.dto.response.BlockedUserResponse;
+import com.example.message_service.dto.response.FriendResponse;
+import com.example.message_service.dto.response.PendingFriendRequestResponse;
 import com.example.message_service.model.Friendship;
 import com.example.message_service.model.User;
 import com.example.message_service.repository.FriendshipRepository;
@@ -103,47 +105,107 @@ public class FriendshipService {
         return ApiResponse.success("00", "Lời mời kết bạn đã bị từ chối", null);
     }
 
-    public ApiResponse<List<String>> getFriendships(String userId) {
+    public ApiResponse<List<FriendResponse>> getFriendships(String userId) {
         Optional<User> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
             return ApiResponse.error("02", "Người dùng không tồn tại");
         }
 
         User user = userOpt.get();
-
-
         List<Friendship> friendships = friendshipRepository.findBySenderOrReceiver(user, user);
 
-
-        List<String> friendNames = friendships.stream()
+        List<FriendResponse> friends = friendships.stream()
                 .filter(f -> "accepted".equals(f.getStatus()))
                 .map(f -> {
                     User friend = f.getSender().equals(user) ? f.getReceiver() : f.getSender();
-                    return friend.getDisplayName(); // hoặc getUsername(), tùy bạn
+                    return new FriendResponse(friend.getId(), friend.getDisplayName(), friend.getAvatarUrl());
                 })
                 .collect(Collectors.toList());
 
-        return ApiResponse.success("00", "Lấy danh sách bạn bè thành công", friendNames);
+        return ApiResponse.success("00", "Lấy danh sách bạn bè thành công", friends);
     }
 
 
 
+
     // Lấy tất cả lời mời kết bạn đang chờ chấp nhận (status = "pending") cho một người nhận
-    public ApiResponse<List<FriendRequestRequest>> getPendingRequests(String userId) {
+    public ApiResponse<List<PendingFriendRequestResponse>> getPendingRequests(String userId) {
         Optional<User> receiverOpt = userRepository.findById(userId);
         if (receiverOpt.isEmpty()) {
             return ApiResponse.error("02", "Người nhận không tồn tại");
         }
 
         User receiver = receiverOpt.get();
+
+        // Kiểm tra xem receiver ID có đúng như bạn mong muốn
+        System.out.println("Tìm lời mời kết bạn cho receiverId: " + receiver.getId());
+
         List<Friendship> pendingRequests = friendshipRepository.findByStatusAndReceiver("pending", receiver);
 
-        List<FriendRequestRequest> dtoList = pendingRequests.stream()
-                .map(f -> new FriendRequestRequest(f.getSender().getDisplayName(), f.getRequestedAt()))
+        System.out.println("Tổng số lời mời pending tìm được: " + pendingRequests.size());
+
+        List<PendingFriendRequestResponse> dtoList = pendingRequests.stream()
+                .map(f -> {
+                    User sender = f.getSender();
+                    return new PendingFriendRequestResponse(
+                            sender.getId(),
+                            sender.getDisplayName(),
+                            sender.getAvatarUrl(),
+                            f.getRequestedAt()
+                    );
+                })
                 .collect(Collectors.toList());
 
         return ApiResponse.success("00", "Lấy danh sách lời mời kết bạn đang chờ thành công", dtoList);
     }
 
+    public ApiResponse<List<BlockedUserResponse>> getBlockedUsers(String userId) {
+        Optional<User> senderOpt = userRepository.findById(userId);
+        if (senderOpt.isEmpty()) {
+            return ApiResponse.error("02", "Người dùng không tồn tại");
+        }
+
+        User sender = senderOpt.get();
+        List<Friendship> blockedFriendships = friendshipRepository.findByStatusAndSender("blocked", sender);
+
+        List<BlockedUserResponse> blockedUsers = blockedFriendships.stream()
+                .map(f -> {
+                    User blocked = f.getReceiver(); // người bị chặn
+                    return new BlockedUserResponse(
+                            blocked.getId(),
+                            blocked.getDisplayName(),
+                            blocked.getAvatarUrl()
+                    );
+                })
+                .collect(Collectors.toList());
+
+        return ApiResponse.success("00", "Lấy danh sách người bị chặn thành công", blockedUsers);
+    }
+
+    public ApiResponse<String> unblockUser(String senderId, String receiverId) {
+        Optional<User> senderOpt = userRepository.findById(senderId);
+        Optional<User> receiverOpt = userRepository.findById(receiverId);
+
+        if (senderOpt.isEmpty() || receiverOpt.isEmpty()) {
+            return ApiResponse.error("01", "Người dùng không tồn tại");
+        }
+
+        User sender = senderOpt.get();
+        User receiver = receiverOpt.get();
+
+        Optional<Friendship> blockedOpt = friendshipRepository.findBySenderAndReceiver(sender, receiver);
+
+        if (blockedOpt.isEmpty()) {
+            return ApiResponse.error("02", "Không tìm thấy mối quan hệ");
+        }
+
+        Friendship friendship = blockedOpt.get();
+        if (!"blocked".equals(friendship.getStatus())) {
+            return ApiResponse.error("03", "Người dùng này không bị chặn");
+        }
+
+        friendshipRepository.delete(friendship);
+        return ApiResponse.success("00", "Đã bỏ chặn người dùng", null);
+    }
 
 }

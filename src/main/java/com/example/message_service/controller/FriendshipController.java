@@ -1,12 +1,15 @@
 package com.example.message_service.controller;
 
 import com.example.message_service.dto.ApiResponse;
-import com.example.message_service.dto.request.FriendRequestRequest;
+import com.example.message_service.dto.response.BlockedUserResponse;
 import com.example.message_service.service.FriendshipService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.example.message_service.dto.response.FriendResponse;
+import com.example.message_service.dto.response.PendingFriendRequestResponse;
+
 
 import java.util.List;
 
@@ -61,15 +64,29 @@ public class FriendshipController {
     }
 
     @GetMapping("/friends")
-    public ResponseEntity<ApiResponse<List<String>>> listFriendShips(@RequestParam String userId) {
-        ApiResponse<List<String>> response = friendshipService.getFriendships(userId);
+    public ResponseEntity<ApiResponse<List<FriendResponse>>> listFriendShips(@RequestParam String userId) {
+        ApiResponse<List<FriendResponse>> response = friendshipService.getFriendships(userId);
         return response != null ? ResponseEntity.ok(response) : ResponseEntity.noContent().build();
     }
 
     @GetMapping("/friend-requests")
-    public ResponseEntity<ApiResponse<List<FriendRequestRequest>>> getPendingFriendRequests(@RequestParam String userId) {
-        ApiResponse<List<FriendRequestRequest>> response = friendshipService.getPendingRequests(userId);
+    public ResponseEntity<ApiResponse<List<PendingFriendRequestResponse>>> getPendingFriendRequests(@RequestParam String userId) {
+        ApiResponse<List<PendingFriendRequestResponse>> response = friendshipService.getPendingRequests(userId);
+        return response != null ? ResponseEntity.ok(response) : ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/blocked-users")
+    public ResponseEntity<ApiResponse<List<BlockedUserResponse>>> getBlockedUsers(@RequestParam String userId) {
+        ApiResponse<List<BlockedUserResponse>> response = friendshipService.getBlockedUsers(userId);
         return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/unblock")
+    public ResponseEntity<ApiResponse<String>> unblockUser(@RequestParam String senderId,
+                                                           @RequestParam String receiverId) {
+        ApiResponse<String> response = friendshipService.unblockUser(senderId, receiverId);
+        return new ResponseEntity<>(response,
+                response.getStatus().isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST);
     }
 
 
