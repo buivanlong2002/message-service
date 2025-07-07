@@ -133,6 +133,9 @@ public class MessageService {
                     attachment.setFileSize(file.getSize());
                     attachment.setMessage(message);
 
+                    String originalFileName = file.getOriginalFilename();
+                    attachment.setOriginalFileName(originalFileName != null ? originalFileName : "unknown");
+
                     attachments.add(attachment);
                 }
 
