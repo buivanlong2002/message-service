@@ -6,8 +6,8 @@ WORKDIR /app
 COPY pom.xml .
 RUN mvn dependency:go-offline -B
 
-# Copy source code sau
-COPY src ./src
+# Copy toàn bộ source (nếu có thêm file ngoài src)
+COPY . .
 
 # Build ứng dụng, bỏ qua test
 RUN mvn clean package -DskipTests
@@ -20,8 +20,11 @@ WORKDIR /app
 # Copy file jar từ stage build
 COPY --from=build /app/target/*.jar app.jar
 
-# Expose đúng cổng app chạy
+# Đặt biến môi trường JAVA_OPTS để Railway inject thêm nếu cần
+ENV JAVA_OPTS=""
+
+# Expose đúng cổng app chạy (Railway sẽ map lại cổng)
 EXPOSE 8885
 
-# Khởi chạy ứng dụng
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Dùng exec form để truyền biến JAVA_OPTS nếu có
+ENTRYPOINT exec java $JAVA_OPTS -jar app.jar
