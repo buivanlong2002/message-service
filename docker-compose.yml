@@ -2,10 +2,12 @@ version: '3.8'
 
 services:
   app:
-    image: your-app-image:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: spring_app
     ports:
-      - "8080:8080"
+      - "8885:8885"
     env_file:
       - .env
     depends_on:
@@ -16,15 +18,15 @@ services:
     image: mysql:8.0
     container_name: mysql_db
     restart: always
+    ports:
+      - "20210:3306"
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
       MYSQL_DATABASE: railway
-      MYSQL_USER: ${DB_USERNAME}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
-    ports:
-      - "20210:3306"
     env_file:
       - .env
+    volumes:
+      - mysql_data:/var/lib/mysql
 
   redis:
     image: redis:alpine
@@ -35,3 +37,6 @@ services:
       - "52777:6379"
     env_file:
       - .env
+
+volumes:
+  mysql_data:
