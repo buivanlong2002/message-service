@@ -13,6 +13,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.Optional;
 
 @RestController
@@ -50,5 +51,10 @@ public class UserController {
     @GetMapping("/{userId}")
     public ApiResponse<User> getUserById(@PathVariable String userId) {
         return userService.getByUserId(userId);
+    }
+
+    @GetMapping("/search")
+    public List<User> searchUsersByEmail(@RequestParam String email) {
+        return userService.searchByEmail(email);
     }
 }
