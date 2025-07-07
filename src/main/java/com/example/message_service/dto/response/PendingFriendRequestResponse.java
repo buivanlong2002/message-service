@@ -9,7 +9,12 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class PendingFriendRequestResponse {
     private String senderId;
-    private String displayName;
-    private String avatarUrl;
+    private String senderDisplayName;
+    private String senderAvatarUrl;
+
+    private String receiverId;              // ✅ Thêm trường này
+    private String receiverDisplayName;     // (tuỳ chọn)
+    private String receiverAvatarUrl;       // (tuỳ chọn)
+
     private LocalDateTime requestedAt;
 }
