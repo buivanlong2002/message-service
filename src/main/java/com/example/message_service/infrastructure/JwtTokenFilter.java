@@ -83,11 +83,7 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 Pair.of(String.format("%s/auth/register", apiPrefix), "POST"),
                 Pair.of(String.format("%s/auth/login", apiPrefix), "POST"),
                 Pair.of(String.format("%s/auth/forgot-password", apiPrefix), "POST"),
-                Pair.of(String.format("%s/auth/reset-password", apiPrefix), "POST"),
-                Pair.of(String.format("%s/login", apiPrefix), "GET"),
-                Pair.of(String.format("%s/profile", apiPrefix), "GET"),
-                Pair.of(String.format("%s/register", apiPrefix), "GET"),
-                Pair.of(String.format("%s/index", apiPrefix), "GET")
+                Pair.of(String.format("%s/auth/reset-password", apiPrefix), "POST")
         );
 
         String path = request.getServletPath();
@@ -102,7 +98,8 @@ public class JwtTokenFilter extends OncePerRequestFilter {
         }
 
         for (Pair<String, String> bypassToken : bypassTokens) {
-            if (path.contains(bypassToken.getFirst()) &&
+            // Chú ý: dùng request.getRequestURI() sẽ chính xác hơn getServletPath()
+            if (request.getRequestURI().contains(bypassToken.getFirst()) &&
                     request.getMethod().equalsIgnoreCase(bypassToken.getSecond())) {
                 return true;
             }
