@@ -98,4 +98,11 @@ public class FriendshipController {
                 response.getStatus().isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST);
     }
 
+    @GetMapping("/sent-requests")
+    public ResponseEntity<ApiResponse<List<PendingFriendRequestResponse>>> getSentFriendRequests(
+            @RequestParam String senderId) {
+        ApiResponse<List<PendingFriendRequestResponse>> response = friendshipService.getSentPendingRequests(senderId);
+        return ResponseEntity.ok(response);
+    }
+
 }

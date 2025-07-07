@@ -147,10 +147,14 @@ public class FriendshipService {
         List<PendingFriendRequestResponse> dtoList = pendingRequests.stream()
                 .map(f -> {
                     User sender = f.getSender();
+
                     return new PendingFriendRequestResponse(
                             sender.getId(),
                             sender.getDisplayName(),
                             sender.getAvatarUrl(),
+                            receiver.getId(),
+                            receiver.getDisplayName(),
+                            receiver.getAvatarUrl(),
                             f.getRequestedAt()
                     );
                 })
@@ -237,5 +241,33 @@ public class FriendshipService {
         return ApiResponse.error("02", "Hai người không phải bạn bè");
     }
 
+    // ✅ Lấy danh sách lời mời kết bạn đã gửi (pending)
+    public ApiResponse<List<PendingFriendRequestResponse>> getSentPendingRequests(String senderId) {
+        Optional<User> senderOpt = userRepository.findById(senderId);
+        if (senderOpt.isEmpty()) {
+            return ApiResponse.error("02", "Người gửi không tồn tại");
+        }
+
+        User sender = senderOpt.get();
+
+        List<Friendship> pendingRequests = friendshipRepository.findByStatusAndSender("pending", sender);
+
+        List<PendingFriendRequestResponse> dtoList = pendingRequests.stream()
+                .map(f -> {
+                    User receiver = f.getReceiver();
+                    return new PendingFriendRequestResponse(
+                            sender.getId(),
+                            sender.getDisplayName(),
+                            sender.getAvatarUrl(),
+                            receiver.getId(),                  // ✅ truyền thêm receiverId
+                            receiver.getDisplayName(),
+                            receiver.getAvatarUrl(),
+                            f.getRequestedAt()
+                    );
+                })
+                .collect(Collectors.toList());
+
+        return ApiResponse.success("00", "Lấy danh sách lời mời kết bạn đã gửi thành công", dtoList);
+    }
 
 }
