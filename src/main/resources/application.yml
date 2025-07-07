@@ -48,6 +48,9 @@ spring:
     mode: HTML
     cache: false
 
+
+spring.config.import: optional:dotenv:.env
+
 server:
   port: 8885
 
