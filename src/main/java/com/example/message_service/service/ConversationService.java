@@ -42,8 +42,13 @@ public class ConversationService {
 
     @Autowired
     private MessageRepository messageRepository;
+
     @Autowired
     private MessageMapper messageMapper;
+
+    @Autowired
+    private FriendshipRepository friendshipRepository;
+
 
 
     // ----------------- CREATE --------------------
@@ -269,6 +274,8 @@ public class ConversationService {
 
         List<ConversationMember> members = conversationMemberRepository.findByConversationId(conversation.getId());
 
+        User partner = null;
+
         if (conversation.isGroup()) {
             name = conversation.getName();
             avatarUrl = conversation.getAvatarUrl();
@@ -277,7 +284,7 @@ public class ConversationService {
                     .map(ConversationMember::getUser)
                     .filter(user -> !user.getId().equals(requesterId))
                     .findFirst();
-            User partner = partnerOpt.orElse(null);
+            partner = partnerOpt.orElse(null);
             name = partner != null ? partner.getDisplayName() : "Cuộc trò chuyện";
             avatarUrl = partner != null ? partner.getAvatarUrl() : null;
         }
@@ -292,7 +299,7 @@ public class ConversationService {
             );
         }
 
-        return new ConversationResponse(
+        ConversationResponse response = new ConversationResponse(
                 conversation.getId(),
                 name,
                 conversation.isGroup(),
@@ -300,7 +307,28 @@ public class ConversationService {
                 conversation.getCreatedAt(),
                 lastMessageInfo
         );
+
+        // ✅ Kiểm tra chặn nếu là 1-1
+        if (!conversation.isGroup() && partner != null && requesterId != null) {
+            Optional<User> requesterOpt = userRepository.findById(requesterId);
+            if (requesterOpt.isPresent()) {
+                User requester = requesterOpt.get();
+
+                boolean blockedByMe = friendshipRepository
+                        .existsBySenderAndReceiverAndStatus(requester, partner, "blocked");
+
+                boolean blockedMe = friendshipRepository
+                        .existsBySenderAndReceiverAndStatus(partner, requester, "blocked");
+
+                response.setBlockedByMe(blockedByMe);
+                response.setBlockedMe(blockedMe);
+                response.setBlocked(blockedByMe || blockedMe);
+            }
+        }
+
+        return response;
     }
+
 
     private String getTimeAgo(LocalDateTime createdAt) {
         Duration duration = Duration.between(createdAt, LocalDateTime.now());
