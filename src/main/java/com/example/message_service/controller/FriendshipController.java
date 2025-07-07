@@ -89,5 +89,13 @@ public class FriendshipController {
                 response.getStatus().isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST);
     }
 
+    @DeleteMapping("/unfriend")
+    public ResponseEntity<ApiResponse<String>> unfriend(
+            @RequestParam String senderId,
+            @RequestParam String receiverId) {
+        ApiResponse<String> response = friendshipService.unfriend(senderId, receiverId);
+        return new ResponseEntity<>(response,
+                response.getStatus().isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST);
+    }
 
 }

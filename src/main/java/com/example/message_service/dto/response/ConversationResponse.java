@@ -26,6 +26,15 @@ public class ConversationResponse {
 
     private String avatarUrl;
 
+    @JsonProperty("isBlocked")
+    private boolean isBlocked;
+
+    @JsonProperty("blockedByMe")
+    private boolean blockedByMe;
+
+    @JsonProperty("blockedMe")
+    private boolean blockedMe;
+
     public ConversationResponse(String id, String name, boolean isGroup, String avatarUrl,
                                 LocalDateTime createdAt, LastMessageInfo lastMessage) {
         this.id = id;

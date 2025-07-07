@@ -166,11 +166,11 @@ public class FriendshipService {
         }
 
         User sender = senderOpt.get();
-        List<Friendship> blockedFriendships = friendshipRepository.findByStatusAndSender("blocked", sender);
+        List<Friendship> blockedFriendships = friendshipRepository.findBySenderAndStatus(sender, "blocked");
 
         List<BlockedUserResponse> blockedUsers = blockedFriendships.stream()
                 .map(f -> {
-                    User blocked = f.getReceiver(); // người bị chặn
+                    User blocked = f.getReceiver();
                     return new BlockedUserResponse(
                             blocked.getId(),
                             blocked.getDisplayName(),
@@ -181,6 +181,7 @@ public class FriendshipService {
 
         return ApiResponse.success("00", "Lấy danh sách người bị chặn thành công", blockedUsers);
     }
+
 
     public ApiResponse<String> unblockUser(String senderId, String receiverId) {
         Optional<User> senderOpt = userRepository.findById(senderId);
@@ -193,19 +194,48 @@ public class FriendshipService {
         User sender = senderOpt.get();
         User receiver = receiverOpt.get();
 
-        Optional<Friendship> blockedOpt = friendshipRepository.findBySenderAndReceiver(sender, receiver);
+        Optional<Friendship> friendshipOpt = friendshipRepository.findBySenderAndReceiver(sender, receiver);
 
-        if (blockedOpt.isEmpty()) {
-            return ApiResponse.error("02", "Không tìm thấy mối quan hệ");
+        if (friendshipOpt.isEmpty()) {
+            return ApiResponse.error("02", "Không tìm thấy mối quan hệ giữa hai người dùng");
         }
 
-        Friendship friendship = blockedOpt.get();
+        Friendship friendship = friendshipOpt.get();
         if (!"blocked".equals(friendship.getStatus())) {
-            return ApiResponse.error("03", "Người dùng này không bị chặn");
+            return ApiResponse.error("03", "Người này không nằm trong danh sách bị chặn");
         }
 
         friendshipRepository.delete(friendship);
-        return ApiResponse.success("00", "Đã bỏ chặn người dùng", null);
+        return ApiResponse.success("00", "Bỏ chặn người dùng thành công", null);
     }
+
+    public ApiResponse<String> unfriend(String senderId, String receiverId) {
+        Optional<User> senderOpt = userRepository.findById(senderId);
+        Optional<User> receiverOpt = userRepository.findById(receiverId);
+
+        if (senderOpt.isEmpty() || receiverOpt.isEmpty()) {
+            return ApiResponse.error("01", "Một hoặc cả hai người dùng không tồn tại");
+        }
+
+        User sender = senderOpt.get();
+        User receiver = receiverOpt.get();
+
+        // Tìm mối quan hệ kết bạn từ cả hai chiều
+        Optional<Friendship> friendshipOpt1 = friendshipRepository.findBySenderAndReceiver(sender, receiver);
+        Optional<Friendship> friendshipOpt2 = friendshipRepository.findBySenderAndReceiver(receiver, sender);
+
+        if (friendshipOpt1.isPresent() && "accepted".equals(friendshipOpt1.get().getStatus())) {
+            friendshipRepository.delete(friendshipOpt1.get());
+            return ApiResponse.success("00", "Đã hủy kết bạn thành công", null);
+        }
+
+        if (friendshipOpt2.isPresent() && "accepted".equals(friendshipOpt2.get().getStatus())) {
+            friendshipRepository.delete(friendshipOpt2.get());
+            return ApiResponse.success("00", "Đã hủy kết bạn thành công", null);
+        }
+
+        return ApiResponse.error("02", "Hai người không phải bạn bè");
+    }
+
 
 }
