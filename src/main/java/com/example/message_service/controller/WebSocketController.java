@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
 import java.util.List;
@@ -18,11 +19,11 @@ import java.util.List;
 @RequiredArgsConstructor
 public class WebSocketController {
 
-    private final MessageService messageService;
     private final PushNewMessage pushNewMessage;
+    private final MessageService messageService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     /**
-     * Lấy danh sách cuộc trò chuyện của user thông qua WebSocket.
      * Client gửi: /app/conversations/get
      * Server trả về: /topic/conversations/{userId}
      */
@@ -38,11 +39,11 @@ public class WebSocketController {
         }
 
         log.info("WebSocket yêu cầu danh sách cuộc trò chuyện cho userId={}", userId);
+
         pushNewMessage.pushUpdatedConversationsToUser(userId);
     }
 
     /**
-     * Lấy danh sách tin nhắn của một cuộc trò chuyện có phân trang.
      * Client gửi: /app/messages/get
      * Server trả về: /topic/messages/{conversationId}/{userId}
      */
@@ -52,25 +53,21 @@ public class WebSocketController {
         String userId = request.getUserId();
         int page = request.getPage();
         int size = request.getSize();
-        String afterTimestamp = request.getAfterTimestamp(); // Thêm tham số này
-
         if (conversationId == null || userId == null || conversationId.isEmpty() || userId.isEmpty()) {
-            log.warn("conversationId hoặc userId không hợp lệ: conversationId={}, userId={}", conversationId, userId);
             return;
         }
-
-        log.info("WebSocket yêu cầu tin nhắn cho conversationId={} từ userId={} (page={}, size={}, afterTimestamp={})",
-                conversationId, userId, page, size, afterTimestamp);
 
         ApiResponse<List<MessageResponse>> response = messageService.getMessagesByConversation(
                 conversationId, page, size);
 
-        String destination = "/topic/messages/" + conversationId + "/" + userId;
-        if (response.getData() != null && !response.getData().isEmpty()) {
-            pushNewMessage.pushMessagesOfConversationToUser(userId, conversationId);
+        if (response.getData() != null) {
+            String destination = "/topic/messages/" + conversationId + "/" + userId;
+            messagingTemplate.convertAndSend(destination, response.getData());
+            log.info("Đã gửi danh sách tin nhắn của cuộc trò chuyện {} tới user {}", conversationId, userId);
         } else {
-            log.warn("Không có tin nhắn nào cho conversationId={} và userId={}", conversationId, userId);
-            pushNewMessage.pushMessagesOfConversationToUser(userId, conversationId);
+            log.warn("Không có tin nhắn nào trong cuộc trò chuyện {} cho user {}", conversationId, userId);
         }
     }
+
+
 }

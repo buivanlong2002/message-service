@@ -153,17 +153,18 @@ public class MessageService {
         // 7. Chuyển đổi sang DTO
         MessageResponse response = messageMapper.toMessageResponse(savedMessage);
 
-        // 8. Gửi tin nhắn mới qua WebSocket đến những người trong cuộc trò chuyện
-        pushNewMessage.pushNewMessageToConversation(conversation.getId(), response);
-
-        // 9. Cập nhật danh sách cuộc trò chuyện cho các thành viên
+        // 8. Cập nhật danh sách cuộc trò chuyện cho các thành viên
         List<ConversationMember> members = conversationMemberRepository.findByConversationId(conversation.getId());
         for (ConversationMember member : members) {
             String memberId = member.getUser().getId();
             pushNewMessage.pushUpdatedConversationsToUser(memberId);
+            if (memberId.equals(senderId)) {
+                continue;
+            }
+            pushNewMessage.pushUpdatedConversationsToMemBer(conversation.getId(), memberId);
         }
 
-        // 10. Trả về phản hồi thành công
+        // 9. Trả về phản hồi thành công
         return ApiResponse.success("00", "Gửi tin nhắn thành công", response);
     }
 
