@@ -45,6 +45,8 @@ CREATE TABLE `message`
     `conversation_id` varchar(255) NOT NULL,
     `reply_to`        varchar(255) DEFAULT NULL,
     `sender_id`       varchar(255) NOT NULL,
+    `is_seen`         BOOLEAN DEFAULT FALSE,
+    `is_recalled`     BOOLEAN DEFAULT FALSE,
     PRIMARY KEY (`id`),
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
 

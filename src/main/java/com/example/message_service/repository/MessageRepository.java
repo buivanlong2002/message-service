@@ -25,5 +25,7 @@ public interface MessageRepository extends JpaRepository<Message, String> {
 
     @EntityGraph(attributePaths = {"attachments"})
     List<Message> findWithAttachmentsByConversationIdOrderByCreatedAtAsc(String conversationId);
+
+    List<Message> findByConversationIdAndSeenFalse(String conversationId);
 }
 
