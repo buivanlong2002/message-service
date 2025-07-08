@@ -217,4 +217,27 @@ public class MessageService {
         message.setContent("Tin nhắn đã được thu hồi");
         messageRepository.save(message);
     }
+
+    public ApiResponse<List<MessageResponse>> searchMessagesByKeyword(String conversationId, String keyword, int page, int size) {
+        if (conversationId == null || conversationId.isBlank()) {
+            return ApiResponse.error("02", "Thiếu conversationId");
+        }
+
+        if (!conversationRepository.existsById(conversationId)) {
+            return ApiResponse.error("01", "Không tìm thấy cuộc trò chuyện");
+        }
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+
+        Page<Message> messagePage = messageRepository
+                .findByConversationIdAndContentContainingIgnoreCase(conversationId, keyword, pageable);
+
+        List<MessageResponse> responseList = messagePage.getContent().stream()
+                .map(messageMapper::toMessageResponse)
+                .toList();
+
+        return ApiResponse.success("00", "Tìm kiếm thành công", responseList);
+    }
+
+
 }

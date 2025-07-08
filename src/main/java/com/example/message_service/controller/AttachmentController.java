@@ -32,4 +32,10 @@ public class AttachmentController {
     public ApiResponse<Attachment> addAttachment(@RequestBody Attachment attachment) {
         return attachmentService.addAttachment(attachment);
     }
+
+    // Lấy tất cả file đính kèm trong một cuộc trò chuyện
+    @GetMapping("/conversation/{conversationId}")
+    public ApiResponse<List<Attachment>> getAttachmentsByConversation(@PathVariable String conversationId) {
+        return attachmentService.getAttachmentsByConversation(conversationId);
+    }
 }

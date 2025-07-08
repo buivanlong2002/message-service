@@ -106,4 +106,15 @@ public class MessageController {
         return ResponseEntity.ok(ApiResponse.success("Thu hồi tin nhắn thành công", null));
     }
 
+    @GetMapping("/search")
+    public ApiResponse<List<MessageResponse>> searchMessages(
+            @RequestParam String conversationId,
+            @RequestParam String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        return messageService.searchMessagesByKeyword(conversationId, keyword, page, size);
+    }
+
+
 }

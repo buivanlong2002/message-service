@@ -227,7 +227,8 @@ public class ConversationService {
                     conversation.isGroup(),
                     conversation.getAvatarUrl(),
                     conversation.getCreatedAt(),
-                    lastMessageInfo
+                    lastMessageInfo,
+                    conversation.getCreatedBy()
             );
         }).collect(Collectors.toList());
 
@@ -305,7 +306,8 @@ public class ConversationService {
                 conversation.isGroup(),
                 avatarUrl,
                 conversation.getCreatedAt(),
-                lastMessageInfo
+                lastMessageInfo,
+                conversation.getCreatedBy()
         );
 
         // ✅ Kiểm tra chặn nếu là 1-1

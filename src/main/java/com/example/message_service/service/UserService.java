@@ -197,4 +197,20 @@ public class UserService {
     public List<User> searchByEmail(String email) {
         return userRepository.searchByEmail(email);
     }
+
+    public ApiResponse<User> findByEmail(String email) {
+        if (email == null || email.isBlank()) {
+            return ApiResponse.error("02", "Email không được để trống");
+        }
+
+        String cleanEmail = email.trim().toLowerCase();
+
+        Optional<User> userOpt = userRepository.findByEmail(cleanEmail);
+        if (userOpt.isPresent()) {
+            return ApiResponse.success("00", "Tìm thấy user", userOpt.get());
+        } else {
+            return ApiResponse.error("01", "User không tồn tại");
+        }
+    }
+
 }
