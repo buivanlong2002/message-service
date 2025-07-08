@@ -19,6 +19,8 @@ public class MessageResponse {
     private LocalDateTime createdAt;
     private String replyToId;
     private boolean edited;
+    private boolean seen;
+    private boolean recalled;
     private List<AttachmentResponse> attachments;
     private String timeAgo;
 }

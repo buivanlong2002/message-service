@@ -31,6 +31,8 @@ public class MessageMapper {
                 message.getCreatedAt(),
                 message.getReplyTo() != null ? message.getReplyTo().getId() : null,
                 message.isEdited(),
+                message.isSeen(),
+                message.isRecalled(),
                 toAttachmentResponseList(message.getAttachments()),
                 getTimeAgo(message.getCreatedAt())
         );
