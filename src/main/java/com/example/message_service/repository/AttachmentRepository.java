@@ -9,4 +9,7 @@ import java.util.UUID;
 @Repository
 public interface AttachmentRepository extends JpaRepository<Attachment, String> {
     List<Attachment> findByMessageId(String messageId); // Tìm tất cả các file đính kèm của tin nhắn
+
+    List<Attachment> findByMessage_Conversation_Id(String conversationId);
+
 }

@@ -57,4 +57,9 @@ public class UserController {
     public List<User> searchUsersByEmail(@RequestParam String email) {
         return userService.searchByEmail(email);
     }
+
+    @GetMapping("/find")
+    public ApiResponse<User> findUsersByEmail(@RequestParam String email) {
+        return userService.findByEmail(email);
+    }
 }

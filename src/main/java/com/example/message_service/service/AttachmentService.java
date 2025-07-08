@@ -29,4 +29,11 @@ public class AttachmentService {
         Attachment savedAttachment = attachmentRepository.save(attachment);
         return ApiResponse.success("00", "Thêm file đính kèm thành công", savedAttachment);
     }
+
+    // Lấy tất cả file đính kèm trong một cuộc trò chuyện
+    public ApiResponse<List<Attachment>> getAttachmentsByConversation(String conversationId) {
+        List<Attachment> attachments = attachmentRepository.findByMessage_Conversation_Id(conversationId);
+        return ApiResponse.success("00", "Lấy tất cả file trong cuộc trò chuyện thành công", attachments);
+    }
+
 }
