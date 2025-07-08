@@ -9,6 +9,7 @@ import com.example.message_service.model.MessageType;
 import com.example.message_service.model.User;
 import com.example.message_service.service.MessageService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -40,7 +41,7 @@ public class MessageController {
             @RequestParam MessageType messageType,
             @RequestParam(required = false) String replyToId,
             @RequestPart(required = false) MultipartFile[] files
-    ) {
+    ) throws ChangeSetPersister.NotFoundException {
         return messageService.sendMessage(
                 senderId,
                 conversationId,
