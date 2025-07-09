@@ -93,4 +93,28 @@ public class MessageController {
     public ApiResponse<MessageResponse> editMessage(@RequestBody EditMessageRequest request) {
         return messageService.editMessage(request.getMessageId(), request.getNewContent());
     }
+
+    @PutMapping("/{id}/seen")
+    public ResponseEntity<?> markMessageAsSeen(@PathVariable String id) {
+        messageService.markAsSeen(id);
+        return ResponseEntity.ok(ApiResponse.success("Đánh dấu đã xem thành công", null));
+    }
+
+    @PutMapping("/{id}/recall")
+    public ResponseEntity<?> recallMessage(@PathVariable String id, @RequestParam String userId) {
+        messageService.recallMessage(id, userId);
+        return ResponseEntity.ok(ApiResponse.success("Thu hồi tin nhắn thành công", null));
+    }
+
+    @GetMapping("/search")
+    public ApiResponse<List<MessageResponse>> searchMessages(
+            @RequestParam String conversationId,
+            @RequestParam String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        return messageService.searchMessagesByKeyword(conversationId, keyword, page, size);
+    }
+
+
 }

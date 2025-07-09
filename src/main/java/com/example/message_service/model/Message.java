@@ -45,7 +45,9 @@ public class Message {
     @JoinColumn(name = "reply_to")
     private Message replyTo;  // Nếu tin nhắn này là trả lời tin nhắn khác
 
-    private boolean isEdited;  // Kiểm tra xem tin nhắn đã được chỉnh sửa chưa
+    private boolean edited = false;
+    private boolean seen = false;
+    private boolean recalled = false;
 
     //Thêm liên kết với Attachment
     @OneToMany(mappedBy = "message", cascade = CascadeType.ALL, fetch = FetchType.LAZY)

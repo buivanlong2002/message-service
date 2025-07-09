@@ -35,16 +35,17 @@ public class ConversationResponse {
     @JsonProperty("blockedMe")
     private boolean blockedMe;
 
+    private String createdBy;
+
     public ConversationResponse(String id, String name, boolean isGroup, String avatarUrl,
-                                LocalDateTime createdAt, LastMessageInfo lastMessage) {
+                                LocalDateTime createdAt, LastMessageInfo lastMessage, String createdBy) {
         this.id = id;
         this.name = name;
         this.group = isGroup;
         this.avatarUrl = avatarUrl;
         this.createdAt = createdAt;
         this.lastMessage = lastMessage;
+        this.createdBy = createdBy;
     }
-
-
 }
 

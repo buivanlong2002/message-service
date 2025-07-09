@@ -30,31 +30,20 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+// ... package và import như cũ
+
 @Service
 public class MessageService {
 
-    @Autowired
-    private MessageRepository messageRepository;
+    @Autowired private MessageRepository messageRepository;
+    @Autowired private ConversationRepository conversationRepository;
+    @Autowired private UserRepository userRepository;
+    @Autowired private MessageMapper messageMapper;
+    @Autowired private ConversationService conversationService;
+    @Autowired private PushNewMessage pushNewMessage;
+    @Autowired private ConversationMemberRepository conversationMemberRepository;
 
-    @Autowired
-    private ConversationRepository conversationRepository;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private MessageMapper messageMapper;
-
-    @Autowired
-    private ConversationService conversationService;
-
-    @Autowired
-    private PushNewMessage pushNewMessage;
-
-    @Autowired
-    private ConversationMemberRepository conversationMemberRepository;
-
-    private static final long MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
+    private static final long MAX_VIDEO_SIZE = 100 * 1024 * 1024;
 
     public ApiResponse<MessageResponse> sendMessage(
             String senderId,
@@ -65,11 +54,9 @@ public class MessageService {
             String content,
             String replyToId
     ) {
-        // 1. Xác minh người gửi
         User sender = userRepository.findById(senderId)
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người gửi"));
 
-        // 2. Lấy hoặc tạo cuộc trò chuyện
         Conversation conversation;
         if (conversationId != null && !conversationId.isBlank()) {
             conversation = conversationRepository.findById(conversationId)
@@ -81,7 +68,6 @@ public class MessageService {
             conversation = conversationService.getOrCreateOneToOneConversation(senderId, receiverId);
         }
 
-        // 3. Tạo đối tượng Message
         Message message = new Message();
         message.setId(UUID.randomUUID().toString());
         message.setSender(sender);
@@ -90,21 +76,20 @@ public class MessageService {
         message.setContent(content != null ? content : "");
         message.setCreatedAt(LocalDateTime.now());
         message.setEdited(false);
+        message.setSeen(false);
+        message.setRecalled(false);
 
-        // 4. Nếu trả lời tin nhắn nào đó
         if (replyToId != null && !replyToId.isBlank()) {
             Message replyTo = messageRepository.findById(replyToId)
                     .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy tin nhắn để trả lời"));
             message.setReplyTo(replyTo);
         }
 
-        // 5. Xử lý file đính kèm (nếu có)
         List<Attachment> attachments = new ArrayList<>();
         if (files != null && files.length > 0) {
             try {
                 for (MultipartFile file : files) {
                     if (file.isEmpty()) continue;
-
                     String contentType = file.getContentType();
                     String folder = getFolderByContentType(contentType);
 
@@ -112,29 +97,24 @@ public class MessageService {
                         return ApiResponse.error("06", "Video quá lớn. Tối đa 100MB.");
                     }
 
-                    // Tạo thư mục nếu chưa tồn tại
                     Path uploadPath = Paths.get("uploads", folder);
                     Files.createDirectories(uploadPath);
 
-                    // Lưu file
                     String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
                     Path filePath = uploadPath.resolve(fileName);
                     Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
-                    // Encode tên file để dùng trong URL
                     String encodedName = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");
                     String fileUrl = "/uploads/" + folder + "/" + encodedName;
 
-                    // Tạo đối tượng Attachment
                     Attachment attachment = new Attachment();
                     attachment.setId(UUID.randomUUID().toString());
                     attachment.setFileUrl(fileUrl);
                     attachment.setFileType(contentType);
                     attachment.setFileSize(file.getSize());
                     attachment.setMessage(message);
-
-                    String originalFileName = file.getOriginalFilename();
-                    attachment.setOriginalFileName(originalFileName != null ? originalFileName : "unknown");
+                    attachment.setOriginalFileName(
+                            Optional.ofNullable(file.getOriginalFilename()).orElse("unknown"));
 
                     attachments.add(attachment);
                 }
@@ -147,27 +127,20 @@ public class MessageService {
             }
         }
 
-        // 6. Lưu tin nhắn
         Message savedMessage = messageRepository.save(message);
-
-        // 7. Chuyển đổi sang DTO
         MessageResponse response = messageMapper.toMessageResponse(savedMessage);
 
-        // 8. Cập nhật danh sách cuộc trò chuyện cho các thành viên
         List<ConversationMember> members = conversationMemberRepository.findByConversationId(conversation.getId());
         for (ConversationMember member : members) {
             String memberId = member.getUser().getId();
             pushNewMessage.pushUpdatedConversationsToUser(memberId);
-            if (memberId.equals(senderId)) {
-                continue;
+            if (!memberId.equals(senderId)) {
+                pushNewMessage.pushUpdatedConversationsToMemBer(conversation.getId(), memberId);
             }
-            pushNewMessage.pushUpdatedConversationsToMemBer(conversation.getId(), memberId);
         }
 
-        // 9. Trả về phản hồi thành công
         return ApiResponse.success("00", "Gửi tin nhắn thành công", response);
     }
-
 
     private String getFolderByContentType(String contentType) {
         if (contentType == null) return "file";
@@ -175,7 +148,6 @@ public class MessageService {
         if (contentType.startsWith("video/")) return "video";
         return "file";
     }
-
 
     @Transactional
     public ApiResponse<List<MessageResponse>> getMessagesByConversation(String conversationId, int page, int size) {
@@ -191,7 +163,6 @@ public class MessageService {
                 .collect(Collectors.toList());
 
         Collections.reverse(responseList);
-
         return ApiResponse.success("00", "Lấy danh sách tin nhắn thành công", responseList);
     }
 
@@ -225,6 +196,47 @@ public class MessageService {
         Message updated = messageRepository.save(message);
         MessageResponse response = messageMapper.toMessageResponse(updated);
         return ApiResponse.success("00", "Chỉnh sửa thành công", response);
+    }
+
+    public void markAsSeen(String messageId) {
+        Message message = messageRepository.findById(messageId)
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy tin nhắn"));
+        message.setSeen(true);
+        messageRepository.save(message);
+    }
+
+    public void recallMessage(String messageId, String userId) {
+        Message message = messageRepository.findById(messageId)
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy tin nhắn"));
+
+        if (!message.getSender().getId().equals(userId)) {
+            throw new RuntimeException("Bạn không có quyền thu hồi tin nhắn này.");
+        }
+
+        message.setRecalled(true);
+        message.setContent("Tin nhắn đã được thu hồi");
+        messageRepository.save(message);
+    }
+
+    public ApiResponse<List<MessageResponse>> searchMessagesByKeyword(String conversationId, String keyword, int page, int size) {
+        if (conversationId == null || conversationId.isBlank()) {
+            return ApiResponse.error("02", "Thiếu conversationId");
+        }
+
+        if (!conversationRepository.existsById(conversationId)) {
+            return ApiResponse.error("01", "Không tìm thấy cuộc trò chuyện");
+        }
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+
+        Page<Message> messagePage = messageRepository
+                .findByConversationIdAndContentContainingIgnoreCase(conversationId, keyword, pageable);
+
+        List<MessageResponse> responseList = messagePage.getContent().stream()
+                .map(messageMapper::toMessageResponse)
+                .toList();
+
+        return ApiResponse.success("00", "Tìm kiếm thành công", responseList);
     }
 
 
