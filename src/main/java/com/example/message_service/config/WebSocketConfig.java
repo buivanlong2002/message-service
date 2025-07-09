@@ -19,7 +19,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
                 .setAllowedOriginPatterns(
-                        "https://cms-service.up.railway.app",
+                        "https://tomotalk.netlify.app",
                         "http://localhost:63343"
                 )
                 .withSockJS(); // nếu bạn cần hỗ trợ trình duyệt cũ
