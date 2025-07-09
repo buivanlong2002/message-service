@@ -1,6 +1,5 @@
 package com.example.message_service.config;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
@@ -19,8 +18,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("https://cms-service.up.railway.app:*")
-                .withSockJS();
+                .setAllowedOriginPatterns(
+                        "https://cms-service.up.railway.app",
+                        "http://localhost:63343"
+                )
+                .withSockJS(); // nếu bạn cần hỗ trợ trình duyệt cũ
     }
 
     @Override
