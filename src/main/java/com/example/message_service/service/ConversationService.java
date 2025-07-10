@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -68,8 +69,7 @@ public class ConversationService {
         conversation.setName(name.trim());
         conversation.setGroup(true);
         conversation.setCreatedBy(createdBy);
-        conversation.setCreatedAt(LocalDateTime.now());
-
+        conversation.setCreatedAt(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
         Conversation saved = conversationRepository.save(conversation);
         conversationMemberService.addCreatorToConversation(saved);
 
