@@ -49,8 +49,7 @@ public class ConversationService {
 
     @Autowired
     private FriendshipRepository friendshipRepository;
-    @Autowired
-    private PushNewMessage pushNewMessage;
+
 
 
 
@@ -65,7 +64,7 @@ public class ConversationService {
 
         Conversation saved = conversationRepository.save(conversation);
         conversationMemberService.addCreatorToConversation(saved);
-        pushNewMessage.pushUpdatedConversationsToUser(createdBy);
+//        pushNewMessage.pushUpdatedConversationsToUser(createdBy);
         return saved;
     }
 
