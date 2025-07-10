@@ -5,6 +5,7 @@ import jakarta.persistence.Column;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Setter
 @Getter
@@ -35,6 +36,8 @@ public class ConversationResponse {
     private boolean blockedMe;
 
     private String createdBy;
+
+    private List<MemberResponse> members;
 
     public ConversationResponse(String id, String name, boolean isGroup, String avatarUrl,
                                 LocalDateTime createdAt, LastMessageInfo lastMessage, String createdBy) {

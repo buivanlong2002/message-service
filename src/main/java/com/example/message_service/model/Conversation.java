@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -30,6 +31,9 @@ public class Conversation {
 
     @Column(name = "is_group", nullable = false)
     private boolean group;
+
+    @OneToMany(mappedBy = "conversation", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<ConversationMember> members;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
