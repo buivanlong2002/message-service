@@ -9,6 +9,7 @@ import com.example.message_service.mapper.MessageMapper;
 import com.example.message_service.model.*;
 import com.example.message_service.repository.*;
 
+import com.example.message_service.service.util.PushNewMessage;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +49,8 @@ public class ConversationService {
 
     @Autowired
     private FriendshipRepository friendshipRepository;
+    @Autowired
+    private PushNewMessage pushNewMessage;
 
 
 
@@ -62,6 +65,7 @@ public class ConversationService {
 
         Conversation saved = conversationRepository.save(conversation);
         conversationMemberService.addCreatorToConversation(saved);
+        pushNewMessage.pushUpdatedConversationsToUser(createdBy);
         return saved;
     }
 
