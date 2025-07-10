@@ -7,11 +7,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.UUID;
+
 @Repository
 public interface ConversationRepository extends JpaRepository<Conversation, String> {
 
-    // Tìm tất cả các cuộc trò chuyện của người dùng
     List<Conversation> findByCreatedBy(String createdBy);
 
     Page<Conversation> findConversationById(String userId, Pageable pageable);

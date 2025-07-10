@@ -3,6 +3,7 @@ package com.example.message_service.service;
 import com.example.message_service.components.JwtTokenUtil;
 import com.example.message_service.dto.ApiResponse;
 import com.example.message_service.dto.request.RegisterRequest;
+import com.example.message_service.dto.request.UpdateProfileRequest;
 import com.example.message_service.infrastructure.RedisToken;
 import com.example.message_service.model.PasswordResetToken;
 import com.example.message_service.model.User;
@@ -211,6 +212,26 @@ public class UserService {
         } else {
             return ApiResponse.error("01", "User không tồn tại");
         }
+    }
+
+    public User updateProfile(User user, UpdateProfileRequest request) {
+        if (request.getDisplayName() != null) {
+            user.setDisplayName(request.getDisplayName());
+        }
+
+        if (request.getPhone() != null) {
+            user.setPhoneNumber(request.getPhone());
+        }
+
+        if (request.getEmail() != null) {
+            user.setEmail(request.getEmail());
+        }
+
+        if (request.getAvatarUrl() != null) {
+            user.setAvatarUrl(request.getAvatarUrl());
+        }
+
+        return userRepository.save(user);
     }
 
 }

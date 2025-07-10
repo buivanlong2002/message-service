@@ -1,16 +1,15 @@
 package com.example.message_service.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.List;
 import java.util.ArrayList;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-@Data
+@Setter
+@Getter
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
@@ -31,25 +30,24 @@ public class Message {
 
     @ManyToOne
     @JoinColumn(name = "sender_id", nullable = false)
-    private User sender;  // Người gửi
+    private User sender;
 
-    private String content;  // Nội dung tin nhắn
+    private String content;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "message_type")
-    private MessageType messageType;  // Loại tin nhắn (text, image, file...)
+    private MessageType messageType;
 
-    private LocalDateTime createdAt;  // Thời gian gửi
+    private LocalDateTime createdAt;
 
     @ManyToOne
     @JoinColumn(name = "reply_to")
-    private Message replyTo;  // Nếu tin nhắn này là trả lời tin nhắn khác
+    private Message replyTo;
 
     private boolean edited = false;
     private boolean seen = false;
     private boolean recalled = false;
 
-    //Thêm liên kết với Attachment
     @OneToMany(mappedBy = "message", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Attachment> attachments = new ArrayList<>();
 }

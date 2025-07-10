@@ -1,10 +1,11 @@
 package com.example.message_service.dto.response;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.*;
 
-@Data
+@Setter
+@Getter
 @AllArgsConstructor
+@NoArgsConstructor
 public class FriendResponse {
     private String id;
     private String displayName;

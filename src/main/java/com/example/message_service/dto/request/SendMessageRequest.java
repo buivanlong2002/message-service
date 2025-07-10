@@ -1,13 +1,12 @@
 package com.example.message_service.dto.request;
 
 import com.example.message_service.model.MessageType;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.UUID;
 
-@Data
+@Setter
+@Getter
 @AllArgsConstructor
 @NoArgsConstructor
 public class SendMessageRequest {

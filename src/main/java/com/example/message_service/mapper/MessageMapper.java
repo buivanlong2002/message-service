@@ -22,6 +22,17 @@ public class MessageMapper {
                 message.getSender().getAvatarUrl()
         );
 
+        // Nếu có tin nhắn được reply
+        String replyToId = null;
+        String replyToContent = null;
+        String replyToSenderName = null;
+
+        if (message.getReplyTo() != null) {
+            replyToId = message.getReplyTo().getId();
+            replyToContent = message.getReplyTo().getContent();
+            replyToSenderName = message.getReplyTo().getSender().getDisplayName();
+        }
+
         return new MessageResponse(
                 message.getId(),
                 message.getConversation().getId(),
@@ -29,7 +40,9 @@ public class MessageMapper {
                 message.getContent(),
                 message.getMessageType().name(),
                 message.getCreatedAt(),
-                message.getReplyTo() != null ? message.getReplyTo().getId() : null,
+                replyToId,
+                replyToContent,
+                replyToSenderName,
                 message.isEdited(),
                 message.isSeen(),
                 message.isRecalled(),

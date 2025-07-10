@@ -30,8 +30,6 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-// ... package và import như cũ
-
 @Service
 public class MessageService {
 
@@ -54,9 +52,11 @@ public class MessageService {
             String content,
             String replyToId
     ) {
+        // 1. Kiểm tra người gửi
         User sender = userRepository.findById(senderId)
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy người gửi"));
 
+        // 2. Lấy hoặc tạo cuộc trò chuyện
         Conversation conversation;
         if (conversationId != null && !conversationId.isBlank()) {
             conversation = conversationRepository.findById(conversationId)
@@ -68,6 +68,7 @@ public class MessageService {
             conversation = conversationService.getOrCreateOneToOneConversation(senderId, receiverId);
         }
 
+        // 3. Tạo message mới
         Message message = new Message();
         message.setId(UUID.randomUUID().toString());
         message.setSender(sender);
@@ -79,17 +80,20 @@ public class MessageService {
         message.setSeen(false);
         message.setRecalled(false);
 
+        // 4. Nếu là tin nhắn trả lời
         if (replyToId != null && !replyToId.isBlank()) {
             Message replyTo = messageRepository.findById(replyToId)
                     .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy tin nhắn để trả lời"));
             message.setReplyTo(replyTo);
         }
 
+        // 5. Xử lý file đính kèm
         List<Attachment> attachments = new ArrayList<>();
         if (files != null && files.length > 0) {
             try {
                 for (MultipartFile file : files) {
                     if (file.isEmpty()) continue;
+
                     String contentType = file.getContentType();
                     String folder = getFolderByContentType(contentType);
 
@@ -127,9 +131,13 @@ public class MessageService {
             }
         }
 
+        // 6. Lưu tin nhắn
         Message savedMessage = messageRepository.save(message);
+
+        // 7. Mapping sang DTO phản hồi
         MessageResponse response = messageMapper.toMessageResponse(savedMessage);
 
+        // 8. Gửi thông báo tới các thành viên trong cuộc trò chuyện
         List<ConversationMember> members = conversationMemberRepository.findByConversationId(conversation.getId());
         for (ConversationMember member : members) {
             String memberId = member.getUser().getId();
@@ -139,8 +147,10 @@ public class MessageService {
             }
         }
 
+        // 9. Trả về kết quả thành công
         return ApiResponse.success("00", "Gửi tin nhắn thành công", response);
     }
+
 
     private String getFolderByContentType(String contentType) {
         if (contentType == null) return "file";

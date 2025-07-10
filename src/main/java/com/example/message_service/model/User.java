@@ -1,7 +1,7 @@
 package com.example.message_service.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.security.core.GrantedAuthority;
@@ -14,7 +14,10 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "users")
-@Data
+@Setter
+@Getter
+@AllArgsConstructor
+@NoArgsConstructor
 public class User implements UserDetails {
 
     @Id
@@ -46,8 +49,6 @@ public class User implements UserDetails {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
-    // Spring Security dùng phương thức này để lấy "username"
-    // Bạn trả về email để dùng email đăng nhập
     @Override
     public String getUsername() {
         return this.email;
@@ -55,12 +56,12 @@ public class User implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(); // hoặc return roles nếu có
+        return List.of();
     }
 
     @Override
     public boolean isAccountNonExpired() {
-        return true; // tùy hệ thống có kiểm tra hay không
+        return true;
     }
 
     @Override
