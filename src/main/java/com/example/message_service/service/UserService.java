@@ -219,8 +219,8 @@ public class UserService {
             user.setDisplayName(request.getDisplayName());
         }
 
-        if (request.getPhone() != null) {
-            user.setPhoneNumber(request.getPhone());
+        if (request.getPhoneNumber() != null) {
+            user.setPhoneNumber(request.getPhoneNumber());
         }
 
         if (request.getEmail() != null) {
