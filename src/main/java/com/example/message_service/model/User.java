@@ -1,5 +1,6 @@
 package com.example.message_service.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -25,10 +26,13 @@ public class User implements UserDetails {
 
     @PrePersist
     public void generateId() {
-        this.id = UUID.randomUUID().toString();
+        if (this.id == null) {
+            this.id = UUID.randomUUID().toString();
+        }
     }
 
     @Column(nullable = false)
+    @JsonIgnore
     private String password;
 
     private String displayName;
@@ -50,31 +54,37 @@ public class User implements UserDetails {
     private LocalDateTime updatedAt;
 
     @Override
+    @JsonIgnore
     public String getUsername() {
         return this.email;
     }
 
     @Override
+    @JsonIgnore
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of();
     }
 
     @Override
+    @JsonIgnore
     public boolean isAccountNonExpired() {
         return true;
     }
 
     @Override
+    @JsonIgnore
     public boolean isAccountNonLocked() {
         return true;
     }
 
     @Override
+    @JsonIgnore
     public boolean isCredentialsNonExpired() {
         return true;
     }
 
     @Override
+    @JsonIgnore
     public boolean isEnabled() {
         return this.status.equalsIgnoreCase("active");
     }

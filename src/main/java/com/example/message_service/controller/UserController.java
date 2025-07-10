@@ -1,10 +1,12 @@
 package com.example.message_service.controller;
 
 import com.example.message_service.dto.ApiResponse;
+import com.example.message_service.dto.request.ChangePasswordRequest;
 import com.example.message_service.dto.request.UpdateProfileRequest;
 import com.example.message_service.model.User;
 import com.example.message_service.repository.UserRepository;
 import com.example.message_service.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -75,4 +77,22 @@ public class UserController {
     public ApiResponse<User> findUsersByEmail(@RequestParam String email) {
         return userService.findByEmail(email);
     }
+
+    @PutMapping("/change-password")
+    public ApiResponse<?> changePassword(@RequestBody @Valid ChangePasswordRequest request) {
+        try {
+            String loginIdentifier = SecurityContextHolder.getContext().getAuthentication().getName();
+            Optional<User> userOptional = userRepository.findByEmail(loginIdentifier);
+            
+            if (userOptional.isEmpty()) {
+                return ApiResponse.error("01", "Không tìm thấy thông tin người dùng");
+            }
+            
+            User user = userOptional.get();
+            return userService.changePassword(user, request);
+        } catch (Exception e) {
+            return ApiResponse.error("99", "Lỗi hệ thống: " + e.getMessage());
+        }
+    }
+
 }

@@ -2,6 +2,7 @@ package com.example.message_service.service;
 
 import com.example.message_service.components.JwtTokenUtil;
 import com.example.message_service.dto.ApiResponse;
+import com.example.message_service.dto.request.ChangePasswordRequest;
 import com.example.message_service.dto.request.RegisterRequest;
 import com.example.message_service.dto.request.UpdateProfileRequest;
 import com.example.message_service.infrastructure.RedisToken;
@@ -211,6 +212,37 @@ public class UserService {
             return ApiResponse.success("00", "Tìm thấy user", userOpt.get());
         } else {
             return ApiResponse.error("01", "User không tồn tại");
+        }
+    }
+
+    @Transactional
+    public ApiResponse<?> changePassword(User user, ChangePasswordRequest request) {
+        try {
+            // Validate input
+            if (request.getCurrentPassword() == null || request.getCurrentPassword().trim().isEmpty()) {
+                return ApiResponse.error("02", "Mật khẩu hiện tại không được để trống");
+            }
+            
+            if (request.getNewPassword() == null || request.getNewPassword().trim().isEmpty()) {
+                return ApiResponse.error("03", "Mật khẩu mới không được để trống");
+            }
+            
+            if (request.getNewPassword().length() < 6) {
+                return ApiResponse.error("04", "Mật khẩu mới phải có ít nhất 6 ký tự");
+            }
+
+            // 1. Kiểm tra mật khẩu hiện tại có khớp không
+            if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+                return ApiResponse.error("01", "Mật khẩu hiện tại không đúng");
+            }
+
+            // 2. Mã hóa và lưu mật khẩu mới
+            user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+            userRepository.save(user);
+
+            return ApiResponse.success("00", "Đổi mật khẩu thành công", null);
+        } catch (Exception e) {
+            return ApiResponse.error("99", "Lỗi hệ thống: " + e.getMessage());
         }
     }
 
