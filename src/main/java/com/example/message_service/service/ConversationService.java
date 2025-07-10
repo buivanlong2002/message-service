@@ -179,8 +179,6 @@ public class ConversationService {
         });
     }
 
-    // ----------------- GET --------------------
-
     public ApiResponse<List<ConversationResponse>> getConversationsByUser(String userId) {
         Optional<User> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
@@ -208,8 +206,10 @@ public class ConversationService {
                     Message lastMsg = lastMessages.get(conv.getId());
                     ConversationResponse response = toConversationResponse(conv, userId, lastMsg);
 
-                    if (!conv.isGroup()) {
+                    // Với conversation 1-1, thêm danh sách thành viên (chỉ người còn lại)
+                    if (!conv.isGroup() && conv.getMembers() != null) {
                         List<MemberResponse> memberResponses = conv.getMembers().stream()
+                                .filter(cm -> cm.getUser() != null && !cm.getUser().getId().equals(userId))
                                 .map(cm -> {
                                     User member = cm.getUser();
                                     return new MemberResponse(
