@@ -4,6 +4,7 @@ import com.example.message_service.dto.ApiResponse;
 import com.example.message_service.dto.request.UpdateConversationRequest;
 import com.example.message_service.dto.response.ConversationResponse;
 import com.example.message_service.dto.response.LastMessageInfo;
+import com.example.message_service.dto.response.MemberResponse;
 import com.example.message_service.dto.response.MessageResponse;
 import com.example.message_service.mapper.MessageMapper;
 import com.example.message_service.model.*;
@@ -203,7 +204,27 @@ public class ConversationService {
         }
 
         List<ConversationResponse> responses = conversations.stream()
-                .map(conv -> toConversationResponse(conv, userId, lastMessages.get(conv.getId())))
+                .map(conv -> {
+                    Message lastMsg = lastMessages.get(conv.getId());
+                    ConversationResponse response = toConversationResponse(conv, userId, lastMsg);
+
+                    if (!conv.isGroup()) {
+                        List<MemberResponse> memberResponses = conv.getMembers().stream()
+                                .map(cm -> {
+                                    User member = cm.getUser();
+                                    return new MemberResponse(
+                                            member.getId(),
+                                            member.getDisplayName(),
+                                            member.getAvatarUrl()
+                                    );
+                                })
+                                .collect(Collectors.toList());
+
+                        response.setMembers(memberResponses);
+                    }
+
+                    return response;
+                })
                 .sorted((a, b) -> {
                     LocalDateTime timeA = a.getLastMessage() != null ? a.getLastMessage().getCreatedAt() : a.getCreatedAt();
                     LocalDateTime timeB = b.getLastMessage() != null ? b.getLastMessage().getCreatedAt() : b.getCreatedAt();
@@ -213,6 +234,7 @@ public class ConversationService {
 
         return ApiResponse.success("00", "Lấy danh sách cuộc trò chuyện thành công", responses);
     }
+
 
     public ApiResponse<List<ConversationResponse>> getConversationsByUserPaged(String userId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
