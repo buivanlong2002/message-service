@@ -1,6 +1,7 @@
 package com.example.message_service.controller;
 
 import com.example.message_service.dto.ApiResponse;
+import com.example.message_service.dto.request.UpdateProfileRequest;
 import com.example.message_service.model.User;
 import com.example.message_service.repository.UserRepository;
 import com.example.message_service.service.UserService;
@@ -29,17 +30,18 @@ public class UserController {
     @Autowired
     private UserService userService;
 
+    // Upload avatar
     @PostMapping("/avatar")
     public ResponseEntity<?> uploadAvatar(@RequestParam("file") MultipartFile file,
                                           @AuthenticationPrincipal User user) {
         return userService.uploadAvatar(file, user);
     }
 
+    // Lấy profile người dùng hiện tại
     @GetMapping("/profile")
     public ApiResponse<?> getMyProfile() {
         String loginIdentifier = SecurityContextHolder.getContext().getAuthentication().getName();
-
-        Optional<User> userOptional = userRepository.findByEmail(loginIdentifier); // Hoặc findByPhoneNumber
+        Optional<User> userOptional = userRepository.findByEmail(loginIdentifier); // hoặc findByPhone
 
         if (userOptional.isEmpty()) {
             return ApiResponse.error("404", "Không tìm thấy người dùng với định danh từ token: " + loginIdentifier);
@@ -48,16 +50,27 @@ public class UserController {
         return ApiResponse.success("00", "Lấy thông tin profile thành công", userOptional.get());
     }
 
+    // Cập nhật thông tin người dùng
+    @PutMapping("/profile")
+    public ApiResponse<?> updateProfile(@RequestBody UpdateProfileRequest request,
+                                        @AuthenticationPrincipal User currentUser) {
+        User updated = userService.updateProfile(currentUser, request);
+        return ApiResponse.success("00", "Cập nhật thông tin thành công", updated);
+    }
+
+    // Lấy người dùng theo ID
     @GetMapping("/{userId}")
     public ApiResponse<User> getUserById(@PathVariable String userId) {
         return userService.getByUserId(userId);
     }
 
+    // Tìm người dùng theo email (search tương đối)
     @GetMapping("/search")
     public List<User> searchUsersByEmail(@RequestParam String email) {
         return userService.searchByEmail(email);
     }
 
+    // Tìm chính xác người dùng theo email
     @GetMapping("/find")
     public ApiResponse<User> findUsersByEmail(@RequestParam String email) {
         return userService.findByEmail(email);

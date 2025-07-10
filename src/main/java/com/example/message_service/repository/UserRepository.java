@@ -13,11 +13,10 @@ import java.util.UUID;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, String> {
-    Optional<User> findByEmail(String email);  // Tìm theo email
+    Optional<User> findByEmail(String email);
 
-    Optional<User> findByPhoneNumber(String phoneNumber);  // Tìm theo số điện thoại
+    Optional<User> findByPhoneNumber(String phoneNumber);
 
-    // Tìm gần đúng theo email
     @Query("SELECT u FROM User u WHERE u.email LIKE %:email%")
     List<User> searchByEmail(@Param("email") String email);
 }

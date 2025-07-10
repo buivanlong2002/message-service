@@ -2,13 +2,16 @@ package com.example.message_service.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
 
 import java.util.UUID;
 
 @Entity
 @Table(name = "attachments")
-@Data
+@Setter
+@Getter
+@AllArgsConstructor
+@NoArgsConstructor
 public class Attachment {
 
     @Id
@@ -22,17 +25,17 @@ public class Attachment {
     @ManyToOne
     @JoinColumn(name = "message_id", nullable = false)
     @JsonIgnore
-    private Message message; // Tin nhắn mà file này liên kết
+    private Message message;
 
     @Column(nullable = false)
-    private String fileUrl; // Đường dẫn URL của file (đã encode + UUID)
+    private String fileUrl;
 
     @Column(nullable = false)
-    private String fileType; // Loại file (image, video, etc.)
+    private String fileType;
 
     @Column(nullable = false)
-    private long fileSize; // Kích thước file
+    private long fileSize;
 
     @Column(name = "original_file_name", nullable = false)
-    private String originalFileName; // Tên file thật người dùng upload
+    private String originalFileName;
 }

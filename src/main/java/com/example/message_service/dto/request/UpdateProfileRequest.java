@@ -1,4 +1,4 @@
-package com.example.message_service.dto.response;
+package com.example.message_service.dto.request;
 
 import lombok.*;
 
@@ -6,8 +6,9 @@ import lombok.*;
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
-public class BlockedUserResponse {
-    private String id;
+public class UpdateProfileRequest {
     private String displayName;
+    private String phone;
+    private String email;
     private String avatarUrl;
 }

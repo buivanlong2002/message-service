@@ -111,8 +111,6 @@ public class ConversationService {
         return saved;
     }
 
-    // ----------------- UPDATE --------------------
-
     public ApiResponse<ConversationResponse> updateConversation(String conversationId, UpdateConversationRequest request) {
         Optional<Conversation> optional = conversationRepository.findById(conversationId);
         if (optional.isEmpty()) {

@@ -28,12 +28,12 @@ public class ConversationMemberService {
     @Autowired
     private UserRepository userRepository;
 
-    // ✅ Thêm 1 thành viên (mặc định role = "member")
+    // Thêm 1 thành viên (mặc định role = "member")
     public ApiResponse<String> addMemberToConversation(String conversationId, String userId) {
         return addMemberToConversation(conversationId, userId, "member");
     }
 
-    // ✅ Thêm thành viên với role cụ thể (dùng cho 1-1 hoặc nhóm)
+    // Thêm thành viên với role cụ thể (dùng cho 1-1 hoặc nhóm)
     public ApiResponse<String> addMemberToConversation(String conversationId, String userId, String role) {
         Optional<Conversation> optionalConversation = conversationRepository.findById(conversationId);
         Optional<User> optionalUser = userRepository.findById(userId);
@@ -66,7 +66,7 @@ public class ConversationMemberService {
         return ApiResponse.success("00", "Thêm thành viên thành công.");
     }
 
-    // ✅ Overload cho object Conversation (không cần query lại từ DB)
+    // Overload cho object Conversation (không cần query lại từ DB)
     public void addMemberToConversation(Conversation conversation, String userId, String role) {
         if (conversationMemberRepository.existsByConversationIdAndUserId(conversation.getId(), userId)) return;
 
@@ -83,7 +83,7 @@ public class ConversationMemberService {
         conversationMemberRepository.save(member);
     }
 
-    // ✅ Lấy danh sách thành viên của cuộc trò chuyện
+    // Lấy danh sách thành viên của cuộc trò chuyện
     public ApiResponse<List<User>> getMembersByConversationId(String conversationId) {
         Optional<Conversation> optionalConversation = conversationRepository.findById(conversationId);
         if (optionalConversation.isEmpty()) {
@@ -98,7 +98,7 @@ public class ConversationMemberService {
         return ApiResponse.success("00", "Lấy danh sách người dùng thành công", users);
     }
 
-    // ✅ Xóa thành viên khỏi cuộc trò chuyện
+    // Xóa thành viên khỏi cuộc trò chuyện
     public ApiResponse<String> removeMemberFromConversation(String conversationId, String userId) {
         Optional<Conversation> optionalConversation = conversationRepository.findById(conversationId);
         Optional<User> optionalUser = userRepository.findById(userId);
@@ -121,7 +121,7 @@ public class ConversationMemberService {
         return ApiResponse.success("00", "Xóa thành viên thành công.");
     }
 
-    // ✅ Thêm người tạo nhóm (nếu chưa có)
+    // Thêm người tạo nhóm (nếu chưa có)
     public ApiResponse<String> addCreatorToConversation(Conversation conversation) {
         String creatorId = conversation.getCreatedBy();
         Optional<User> optionalUser = userRepository.findById(creatorId);

@@ -17,11 +17,11 @@ public interface MessageRepository extends JpaRepository<Message, String> {
 
     Message findTopByConversationIdOrderByCreatedAtDesc(String conversationId);
 
-    List<Message> findByConversationIdOrderByCreatedAtAsc(String conversationId);  // Lấy tất cả tin nhắn theo cuộc trò chuyện
+    List<Message> findByConversationIdOrderByCreatedAtAsc(String conversationId);
 
-    Optional<Message> findByIdAndConversationId(String id, String conversationId);  // Lấy tin nhắn theo ID và cuộc trò chuyện
+    Optional<Message> findByIdAndConversationId(String id, String conversationId);
 
-    List<Message> findBySenderIdAndConversationIdOrderByCreatedAtAsc(String senderId, String conversationId);  // Lấy tin nhắn của người gửi theo cuộc trò chuyện
+    List<Message> findBySenderIdAndConversationIdOrderByCreatedAtAsc(String senderId, String conversationId);
 
     Page<Message> findByConversationId(String conversationId, Pageable pageable);
 

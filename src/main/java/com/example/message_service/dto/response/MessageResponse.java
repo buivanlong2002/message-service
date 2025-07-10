@@ -1,13 +1,12 @@
 package com.example.message_service.dto.response;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
-@Data
+@Setter
+@Getter
 @AllArgsConstructor
 @NoArgsConstructor
 public class MessageResponse {
@@ -17,10 +16,15 @@ public class MessageResponse {
     private String content;
     private String messageType;
     private LocalDateTime createdAt;
+
     private String replyToId;
+    private String replyToContent;
+    private String replyToSenderName;
+
     private boolean edited;
     private boolean seen;
     private boolean recalled;
+
     private List<AttachmentResponse> attachments;
     private String timeAgo;
 }

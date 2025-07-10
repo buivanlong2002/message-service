@@ -2,14 +2,17 @@ package com.example.message_service.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
 @Table(name = "notifications")
-@Data
+@Setter
+@Getter
+@AllArgsConstructor
+@NoArgsConstructor
 public class Notification {
 
     @Id
@@ -18,18 +21,18 @@ public class Notification {
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     @JsonIgnore
-    private User user; // Người nhận thông báo
+    private User user;
 
     @Column(nullable = false)
-    private String type; // Loại thông báo (ví dụ: "message", "friend_request", ...)
+    private String type;
 
     @Column(nullable = false)
-    private String content; // Nội dung thông báo
+    private String content;
 
-    private String extraData; // Dữ liệu bổ sung (ví dụ: ID cuộc trò chuyện)
+    private String extraData;
 
     @Column(name = "is_read", nullable = false)
-    private boolean read; // ⚠ Đã đổi tên cột thành `is_read`
+    private boolean read;
 
     private LocalDateTime readAt;
 

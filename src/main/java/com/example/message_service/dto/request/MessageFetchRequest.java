@@ -1,9 +1,12 @@
 package com.example.message_service.dto.request;
 
 
-import lombok.Data;
+import lombok.*;
 
-@Data
+@Setter
+@Getter
+@AllArgsConstructor
+@NoArgsConstructor
 public class MessageFetchRequest {
     private String conversationId;
     private String userId;
