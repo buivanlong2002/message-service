@@ -21,7 +21,6 @@ public class PushNewMessage {
 
     private final SimpMessagingTemplate messagingTemplate;
     private final ConversationService conversationService;
-    private final ConversationMemberRepository conversationMemberRepository;
 
     /**
      * Gửi danh sách cuộc trò chuyện của người dùng về client

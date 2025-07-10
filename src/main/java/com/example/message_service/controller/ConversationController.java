@@ -6,6 +6,7 @@ import com.example.message_service.dto.response.ConversationResponse;
 import com.example.message_service.model.Conversation;
 import com.example.message_service.service.ConversationMemberService;
 import com.example.message_service.service.ConversationService;
+import com.example.message_service.service.util.PushNewMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +24,8 @@ public class ConversationController {
 
     @Autowired
     private ConversationMemberService conversationMemberService;
+    @Autowired
+    private PushNewMessage pushNewMessage;
 
     // Tạo nhóm mới
     @PostMapping("/create-group")
@@ -30,6 +33,7 @@ public class ConversationController {
             @RequestParam String name,
             @RequestParam String createdBy) {
         Conversation conversation = conversationService.createGroupConversation(name, createdBy);
+        pushNewMessage.pushUpdatedConversationsToUser(createdBy);
         return new ResponseEntity<>(conversation, HttpStatus.CREATED);
     }
 
