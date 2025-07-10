@@ -185,14 +185,15 @@ public class ConversationService {
             return ApiResponse.error("03", "Không tìm thấy người dùng: " + userId);
         }
 
-        List<ConversationMember> members = conversationMemberRepository.findByUserId(userId);
-        List<Conversation> conversations = members.stream()
+        // Lấy tất cả ConversationMember liên quan đến user này
+        List<ConversationMember> myMemberships = conversationMemberRepository.findByUserId(userId);
+        List<Conversation> conversations = myMemberships.stream()
                 .map(ConversationMember::getConversation)
                 .filter(Objects::nonNull)
                 .distinct()
                 .collect(Collectors.toList());
 
-        // Lấy last message cho mỗi conversation
+        // Lấy last message cho từng conversation
         Map<String, Message> lastMessages = new HashMap<>();
         for (Conversation conv : conversations) {
             Message lastMsg = messageRepository.findTopByConversationIdOrderByCreatedAtDesc(conv.getId());
@@ -206,9 +207,10 @@ public class ConversationService {
                     Message lastMsg = lastMessages.get(conv.getId());
                     ConversationResponse response = toConversationResponse(conv, userId, lastMsg);
 
-                    // Với conversation 1-1, thêm danh sách thành viên (chỉ người còn lại)
-                    if (!conv.isGroup() && conv.getMembers() != null) {
-                        List<MemberResponse> memberResponses = conv.getMembers().stream()
+                    if (!conv.isGroup()) {
+                        // Tìm thành viên từ repository thay vì conv.getMembers()
+                        List<ConversationMember> members = conversationMemberRepository.findByConversationId(conv.getId());
+                        List<MemberResponse> memberResponses = members.stream()
                                 .filter(cm -> cm.getUser() != null && !cm.getUser().getId().equals(userId))
                                 .map(cm -> {
                                     User member = cm.getUser();
@@ -234,7 +236,6 @@ public class ConversationService {
 
         return ApiResponse.success("00", "Lấy danh sách cuộc trò chuyện thành công", responses);
     }
-
 
     public ApiResponse<List<ConversationResponse>> getConversationsByUserPaged(String userId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
