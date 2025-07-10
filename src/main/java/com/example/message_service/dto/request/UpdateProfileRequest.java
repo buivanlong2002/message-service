@@ -8,7 +8,7 @@ import lombok.*;
 @NoArgsConstructor
 public class UpdateProfileRequest {
     private String displayName;
-    private String phone;
+    private String phoneNumber;
     private String email;
     private String avatarUrl;
 }
