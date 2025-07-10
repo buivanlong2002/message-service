@@ -55,18 +55,27 @@ public class ConversationService {
 
     // ----------------- CREATE --------------------
 
-    public Conversation createGroupConversation(String name, String createdBy) {
+    public ApiResponse<Conversation> createGroupConversation(String name, String createdBy) {
+        if (name == null || name.trim().isEmpty()) {
+            return ApiResponse.error("01", "Tên nhóm không được để trống");
+        }
+
+        if (createdBy == null || createdBy.trim().isEmpty()) {
+            return ApiResponse.error("02", "Người tạo không được để trống");
+        }
+
         Conversation conversation = new Conversation();
-        conversation.setName(name);
+        conversation.setName(name.trim());
         conversation.setGroup(true);
         conversation.setCreatedBy(createdBy);
         conversation.setCreatedAt(LocalDateTime.now());
 
         Conversation saved = conversationRepository.save(conversation);
         conversationMemberService.addCreatorToConversation(saved);
-//        pushNewMessage.pushUpdatedConversationsToUser(createdBy);
-        return saved;
+
+        return ApiResponse.success("00", "Tạo nhóm thành công", saved);
     }
+
 
     public Conversation getOrCreateOneToOneConversation(String senderId, String receiverId) {
         Optional<Conversation> existing = findOneToOneConversation(senderId, receiverId);
