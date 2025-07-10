@@ -29,13 +29,21 @@ public class ConversationController {
 
     // Tạo nhóm mới
     @PostMapping("/create-group")
-    public ResponseEntity<Conversation> createGroupConversation(
+    public ResponseEntity<ApiResponse<Conversation>> createGroupConversation(
             @RequestParam String name,
             @RequestParam String createdBy) {
-        Conversation conversation = conversationService.createGroupConversation(name, createdBy);
-        pushNewMessage.pushUpdatedConversationsToUser(createdBy);
-        return new ResponseEntity<>(conversation, HttpStatus.CREATED);
+        try {
+            ApiResponse<Conversation> response = conversationService.createGroupConversation(name, createdBy);
+            pushNewMessage.pushUpdatedConversationsToUser(createdBy);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (Exception e) {
+            // Trả về mã lỗi "99" hoặc tương ứng nếu có exception
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("99", "Lỗi khi tạo nhóm: " + e.getMessage()));
+        }
     }
+
 
     // Tạo hoặc lấy cuộc trò chuyện 1-1
     @PostMapping("/one-to-one")
