@@ -139,9 +139,12 @@ public class MessageService {
             MessageStatus status = new MessageStatus();
             status.setMessage(savedMessage);
             status.setUser(member.getUser());
+            if (member.getUser().getId().equals(savedMessage.getSender().getId())) {
+                status.setStatus(MessageStatusEnum.SEEN);
+            } else {
+                status.setStatus(MessageStatusEnum.SENT);
+            }
 
-            // Người gửi có thể mặc định là SENT, người nhận cũng là SENT (cho tới khi xem)
-            status.setStatus(MessageStatusEnum.SENT);
             statusList.add(status);
         }
 
