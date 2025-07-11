@@ -17,16 +17,12 @@ public class MessageResponse {
     private String messageType;
     private LocalDateTime createdAt;
 
-    private String replyToId;
-    private String replyToContent;
-    private String replyToSenderName;
-
+    private String replyToId; // chỉ giữ cái này
     private boolean edited;
     private boolean seen;
     private boolean recalled;
     private List<AttachmentResponse> attachments;
     private String timeAgo;
-
-    private String status; // "SEEN", "SENT", "FAILED"
+    private String status;
     private List<SeenByResponse> seenBy;
 }
