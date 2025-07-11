@@ -32,7 +32,7 @@ public interface MessageStatusRepository extends JpaRepository<MessageStatus, St
                   AND m.conversation_id = :conversationId
                   AND ms.status <> 'SEEN'
             """, nativeQuery = true)
-    int markAllAsSeen(@Param("conversationId") String conversationId,
+    Integer markAllAsSeen(@Param("conversationId") String conversationId,
                       @Param("userId") String userId);
 
     List<MessageStatus> findByUserIdAndStatus(String userId, String status);
