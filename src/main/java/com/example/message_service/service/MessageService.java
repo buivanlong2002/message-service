@@ -4,10 +4,7 @@ import com.example.message_service.dto.ApiResponse;
 import com.example.message_service.dto.response.MessageResponse;
 import com.example.message_service.mapper.MessageMapper;
 import com.example.message_service.model.*;
-import com.example.message_service.repository.ConversationMemberRepository;
-import com.example.message_service.repository.ConversationRepository;
-import com.example.message_service.repository.MessageRepository;
-import com.example.message_service.repository.UserRepository;
+import com.example.message_service.repository.*;
 import com.example.message_service.service.util.PushNewMessage;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
@@ -40,6 +37,7 @@ public class MessageService {
     @Autowired private ConversationService conversationService;
     @Autowired private PushNewMessage pushNewMessage;
     @Autowired private ConversationMemberRepository conversationMemberRepository;
+    @Autowired private MessageStatusRepository messageStatusRepository;
 
     private static final long MAX_VIDEO_SIZE = 100 * 1024 * 1024;
 
@@ -117,8 +115,7 @@ public class MessageService {
                     attachment.setFileType(contentType);
                     attachment.setFileSize(file.getSize());
                     attachment.setMessage(message);
-                    attachment.setOriginalFileName(
-                            Optional.ofNullable(file.getOriginalFilename()).orElse("unknown"));
+                    attachment.setOriginalFileName(Optional.ofNullable(file.getOriginalFilename()).orElse("unknown"));
 
                     attachments.add(attachment);
                 }
@@ -134,11 +131,26 @@ public class MessageService {
         // 6. Lưu tin nhắn
         Message savedMessage = messageRepository.save(message);
 
-        // 7. Mapping sang DTO phản hồi
+        // 7. Lưu trạng thái tin nhắn cho từng thành viên trong cuộc trò chuyện
+        List<ConversationMember> members = conversationMemberRepository.findByConversationId(conversation.getId());
+        List<MessageStatus> statusList = new ArrayList<>();
+
+        for (ConversationMember member : members) {
+            MessageStatus status = new MessageStatus();
+            status.setMessage(savedMessage);
+            status.setUser(member.getUser());
+
+            // Người gửi có thể mặc định là SENT, người nhận cũng là SENT (cho tới khi xem)
+            status.setStatus(MessageStatusEnum.SENT);
+            statusList.add(status);
+        }
+
+        messageStatusRepository.saveAll(statusList);
+
+        // 8. Mapping sang DTO phản hồi
         MessageResponse response = messageMapper.toMessageResponse(savedMessage);
 
-        // 8. Gửi thông báo tới các thành viên trong cuộc trò chuyện
-        List<ConversationMember> members = conversationMemberRepository.findByConversationId(conversation.getId());
+        // 9. Gửi thông báo tới các thành viên
         for (ConversationMember member : members) {
             String memberId = member.getUser().getId();
             pushNewMessage.pushUpdatedConversationsToUser(memberId);
@@ -147,9 +159,10 @@ public class MessageService {
             }
         }
 
-        // 9. Trả về kết quả thành công
+        // 10. Trả về kết quả thành công
         return ApiResponse.success("00", "Gửi tin nhắn thành công", response);
     }
+
 
 
     private String getFolderByContentType(String contentType) {
