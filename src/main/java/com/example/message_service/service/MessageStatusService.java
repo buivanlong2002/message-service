@@ -2,6 +2,7 @@ package com.example.message_service.service;
 
 import com.example.message_service.dto.ApiResponse;
 import com.example.message_service.model.MessageStatus;
+import com.example.message_service.model.MessageStatusEnum;
 import com.example.message_service.repository.MessageStatusRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -63,7 +64,7 @@ public class MessageStatusService {
         }
 
         MessageStatus status = optionalStatus.get();
-        status.setStatus(newStatus);
+        status.setStatus(MessageStatusEnum.valueOf(newStatus));
         status.setUpdatedAt(LocalDateTime.now());
         MessageStatus updated = messageStatusRepository.save(status);
 

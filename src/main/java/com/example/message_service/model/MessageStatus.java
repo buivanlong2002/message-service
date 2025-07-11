@@ -1,5 +1,6 @@
 package com.example.message_service.model;
 
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
@@ -9,8 +10,8 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "message_status")
-@Setter
 @Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 public class MessageStatus {
@@ -35,8 +36,9 @@ public class MessageStatus {
     @JsonIgnore
     private User user;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String status = "delivered";
+    private MessageStatusEnum status = MessageStatusEnum.SENT;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -44,4 +46,3 @@ public class MessageStatus {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 }
-
