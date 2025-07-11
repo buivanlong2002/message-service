@@ -30,14 +30,6 @@ public class MessageStatusService {
         return ApiResponse.success("00", "Lấy trạng thái theo tin nhắn thành công", statuses);
     }
 
-    // Lấy trạng thái theo messageId và userId
-    public ApiResponse<List<MessageStatus>> getStatusByMessageAndUser(String messageId, String userId) {
-        List<MessageStatus> statuses = messageStatusRepository.findByMessageIdAndUserId(messageId, userId);
-        if (statuses.isEmpty()) {
-            return ApiResponse.error("02", "Không có trạng thái nào cho tin nhắn và người dùng này");
-        }
-        return ApiResponse.success("00", "Lấy trạng thái theo tin nhắn và người dùng thành công", statuses);
-    }
 
     // Lấy trạng thái theo userId và status
     public ApiResponse<List<MessageStatus>> getStatusByUserAndStatus(String userId, String status) {

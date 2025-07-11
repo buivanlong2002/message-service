@@ -14,12 +14,11 @@ import java.util.stream.Collectors;
 public class MessageMapper {
 
     public MessageResponse toMessageResponse(Message message) {
-        return toMessageResponse(message, null, List.of());
+        return toMessageResponse(message, List.of());
     }
 
     public MessageResponse toMessageResponse(
             Message message,
-            String status,
             List<SeenByResponse> seenBy
     ) {
         SenderResponse senderResponse = new SenderResponse(
@@ -47,7 +46,6 @@ public class MessageMapper {
                 message.isRecalled(),
                 toAttachmentResponseList(message.getAttachments()),
                 getTimeAgo(message.getCreatedAt()),
-                status,
                 seenBy
         );
     }

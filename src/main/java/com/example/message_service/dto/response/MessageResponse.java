@@ -23,6 +23,5 @@ public class MessageResponse {
     private boolean recalled;
     private List<AttachmentResponse> attachments;
     private String timeAgo;
-    private String status;
     private List<SeenByResponse> seenBy;
 }

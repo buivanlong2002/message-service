@@ -50,4 +50,6 @@ public class Message {
 
     @OneToMany(mappedBy = "message", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Attachment> attachments = new ArrayList<>();
+
+
 }

@@ -86,17 +86,4 @@ public class ConversationController {
         ApiResponse<List<ConversationResponse>> response = conversationService.getConversationsByUser(userId);
         return ResponseEntity.ok(response);
     }
-
-    // Lấy danh sách cuộc trò chuyện có phân trang
-    @GetMapping("/user/{userId}/paged")
-    public ResponseEntity<ApiResponse<List<ConversationResponse>>> getPagedConversationsByUser(
-            @PathVariable String userId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-
-        ApiResponse<List<ConversationResponse>> response =
-                conversationService.getConversationsByUserPaged(userId, page, size);
-
-        return ResponseEntity.ok(response);
-    }
 }
