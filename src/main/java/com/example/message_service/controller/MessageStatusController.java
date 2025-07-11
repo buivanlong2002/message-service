@@ -26,12 +26,12 @@ public class MessageStatusController {
     }
 
     // Lấy trạng thái của tin nhắn theo người dùng
-    @GetMapping("/message/{messageId}/user/{userId}")
-    public ApiResponse<List<MessageStatus>> getStatusesByMessageAndUser(
-            @PathVariable String messageId,
-            @PathVariable String userId) {
-        return messageStatusService.getStatusByMessageAndUser(messageId, userId);
-    }
+//    @GetMapping("/message/{messageId}/user/{userId}")
+//    public ApiResponse<List<MessageStatus>> getStatusesByMessageAndUser(
+//            @PathVariable String messageId,
+//            @PathVariable String userId) {
+//        return messageStatusService.getStatusByMessageAndUser(messageId, userId);
+//    }
 
     // Lấy trạng thái theo người dùng và trạng thái cụ thể (ví dụ: DELIVERED, READ)
     @GetMapping("/user/{userId}/status/{status}")

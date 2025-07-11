@@ -51,6 +51,8 @@ public class ConversationService {
 
     @Autowired
     private FriendshipRepository friendshipRepository;
+    @Autowired
+    private MessageStatusRepository messageStatusRepository;
 
 
 
@@ -247,60 +249,6 @@ public class ConversationService {
     }
 
 
-    public ApiResponse<List<ConversationResponse>> getConversationsByUserPaged(String userId, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<Conversation> conversationPage = conversationRepository.findConversationById(userId, pageable);
-
-        List<ConversationResponse> responseList = conversationPage.getContent().stream().map(conversation -> {
-            Message lastMessage = messageRepository.findTopByConversationIdOrderByCreatedAtDesc(conversation.getId());
-
-            LastMessageInfo lastMessageInfo = null;
-            if (lastMessage != null) {
-                lastMessageInfo = new LastMessageInfo(
-                        lastMessage.getContent(),
-                        lastMessage.getSender().getDisplayName(),
-                        getTimeAgo(lastMessage.getCreatedAt()),
-                        lastMessage.getCreatedAt()
-                );
-            }
-
-            return new ConversationResponse(
-                    conversation.getId(),
-                    conversation.getName(),
-                    conversation.isGroup(),
-                    conversation.getAvatarUrl(),
-                    conversation.getCreatedAt(),
-                    lastMessageInfo,
-                    conversation.getCreatedBy()
-            );
-        }).collect(Collectors.toList());
-
-        return ApiResponse.success("00", "Lấy danh sách nhóm thành công", responseList);
-    }
-
-    public ApiResponse<List<ConversationResponse>> getConversationsRealTimeByUser(String userId) {
-        List<ConversationMember> members = conversationMemberRepository.findByUserId(userId);
-        List<ConversationResponse> results = new ArrayList<>();
-
-        for (ConversationMember member : members) {
-            Conversation conversation = member.getConversation();
-            if (conversation == null) continue;
-
-            Message lastMessage = messageRepository.findTopByConversationIdOrderByCreatedAtDesc(conversation.getId());
-            ConversationResponse response = toConversationResponse(conversation, userId, lastMessage);
-            results.add(response);
-        }
-
-        results.sort(Comparator.comparing((ConversationResponse cr) -> {
-            LocalDateTime t = cr.getLastMessage() != null ? cr.getLastMessage().getCreatedAt() : cr.getCreatedAt();
-            return t;
-        }).reversed());
-
-        return ApiResponse.success("00", "Lấy danh sách cuộc trò chuyện thành công", results);
-    }
-
-    // ----------------- HELPER --------------------
-
     private Optional<Conversation> findOneToOneConversation(String userId1, String userId2) {
         return conversationMemberRepository.findByUserId(userId1).stream()
                 .map(ConversationMember::getConversation)
@@ -311,38 +259,57 @@ public class ConversationService {
                 })
                 .findFirst();
     }
-
     private ConversationResponse toConversationResponse(Conversation conversation, String requesterId, Message lastMessage) {
         String name;
         String avatarUrl = null;
 
+        // Lấy danh sách thành viên
         List<ConversationMember> members = conversationMemberRepository.findByConversationId(conversation.getId());
 
-        User partner = null;
+        User partner;
 
+        // Nếu là nhóm
         if (conversation.isGroup()) {
+            partner = null;
             name = conversation.getName();
             avatarUrl = conversation.getAvatarUrl();
         } else {
-            Optional<User> partnerOpt = members.stream()
+            // Nếu là cuộc trò chuyện 1-1
+            partner = members.stream()
                     .map(ConversationMember::getUser)
                     .filter(user -> !user.getId().equals(requesterId))
-                    .findFirst();
-            partner = partnerOpt.orElse(null);
-            name = partner != null ? partner.getDisplayName() : "Cuộc trò chuyện";
-            avatarUrl = partner != null ? partner.getAvatarUrl() : null;
+                    .findFirst()
+                    .orElse(null);
+
+            name = (partner != null) ? partner.getDisplayName() : "Cuộc trò chuyện";
+            avatarUrl = (partner != null) ? partner.getAvatarUrl() : null;
         }
 
+        // Xử lý thông tin tin nhắn cuối cùng
         LastMessageInfo lastMessageInfo = null;
         if (lastMessage != null) {
+            boolean seen = false;
+            String statusStr = null;
+
+            // Kiểm tra trạng thái tin nhắn cuối cùng của requester
+            MessageStatus status = messageStatusRepository.findByMessageIdAndUserId(lastMessage.getId(), requesterId);
+            if (status != null) {
+                statusStr = status.getStatus().name();
+                seen = status.getStatus() == MessageStatusEnum.SEEN;
+            }
+
             lastMessageInfo = new LastMessageInfo(
                     lastMessage.getContent(),
                     lastMessage.getSender().getDisplayName(),
                     getTimeAgo(lastMessage.getCreatedAt()),
-                    lastMessage.getCreatedAt()
+                    statusStr,
+                    lastMessage.getCreatedAt(),
+                    seen
+
             );
         }
 
+        // Tạo response
         ConversationResponse response = new ConversationResponse(
                 conversation.getId(),
                 name,
@@ -353,21 +320,16 @@ public class ConversationService {
                 conversation.getCreatedBy()
         );
 
+        // Kiểm tra trạng thái chặn nếu không phải nhóm
         if (!conversation.isGroup() && partner != null && requesterId != null) {
-            Optional<User> requesterOpt = userRepository.findById(requesterId);
-            if (requesterOpt.isPresent()) {
-                User requester = requesterOpt.get();
-
-                boolean blockedByMe = friendshipRepository
-                        .existsBySenderAndReceiverAndStatus(requester, partner, "blocked");
-
-                boolean blockedMe = friendshipRepository
-                        .existsBySenderAndReceiverAndStatus(partner, requester, "blocked");
+            userRepository.findById(requesterId).ifPresent(requester -> {
+                boolean blockedByMe = friendshipRepository.existsBySenderAndReceiverAndStatus(requester, partner, "blocked");
+                boolean blockedMe = friendshipRepository.existsBySenderAndReceiverAndStatus(partner, requester, "blocked");
 
                 response.setBlockedByMe(blockedByMe);
                 response.setBlockedMe(blockedMe);
                 response.setBlocked(blockedByMe || blockedMe);
-            }
+            });
         }
 
         return response;

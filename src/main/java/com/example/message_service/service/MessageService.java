@@ -172,7 +172,7 @@ public class MessageService {
                 .collect(Collectors.toList());
 
         // 10. Mapping sang DTO
-        MessageResponse response = messageMapper.toMessageResponse(savedMessage, senderId, seenByList);
+        MessageResponse response = messageMapper.toMessageResponse(savedMessage, seenByList);
 
         // 11. Đẩy socket đến các thành viên
         for (ConversationMember member : members) {
@@ -204,14 +204,45 @@ public class MessageService {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         Page<Message> messagePage = messageRepository.findByConversationId(conversationId, pageable);
+        List<Message> messages = messagePage.getContent();
 
-        List<MessageResponse> responseList = messagePage.getContent().stream()
-                .map(messageMapper::toMessageResponse)
+        // Lấy toàn bộ messageId
+        List<String> messageIds = messages.stream()
+                .map(Message::getId)
+                .toList();
+
+        // Lấy danh sách những người đã xem (status = SEEN)
+        List<MessageStatus> allSeenStatuses = messageStatusRepository
+                .findByMessageIdInAndStatus(messageIds, MessageStatusEnum.SEEN);
+
+        // Gom theo messageId
+        Map<String, List<SeenByResponse>> seenMap = allSeenStatuses.stream()
+                .collect(Collectors.groupingBy(
+                        ms -> ms.getMessage().getId(),
+                        Collectors.mapping(ms -> new SeenByResponse(
+                                ms.getUser().getId(),
+                                ms.getUser().getDisplayName(),
+                                ms.getUser().getAvatarUrl(),
+                                ms.getUpdatedAt()
+                        ), Collectors.toList())
+                ));
+
+        // Map sang MessageResponse
+        List<MessageResponse> responseList = messages.stream()
+                .map(message -> {
+                    List<SeenByResponse> seenStatuses = seenMap.getOrDefault(message.getId(), List.of());
+                    return messageMapper.toMessageResponse(message, seenStatuses);
+                })
                 .collect(Collectors.toList());
 
         Collections.reverse(responseList);
+
         return ApiResponse.success("00", "Lấy danh sách tin nhắn thành công", responseList);
     }
+
+
+
+
 
     public Optional<Message> getMessageByIdAndConversation(String id, String conversationId) {
         return messageRepository.findByIdAndConversationId(id, conversationId);
