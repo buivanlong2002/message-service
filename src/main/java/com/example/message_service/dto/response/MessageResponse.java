@@ -24,7 +24,8 @@ public class MessageResponse {
     private boolean edited;
     private boolean seen;
     private boolean recalled;
-
     private List<AttachmentResponse> attachments;
     private String timeAgo;
+    private String status; // "SEEN", "SENT", "FAILED"
+    private List<SeenByResponse> seenBy;
 }
