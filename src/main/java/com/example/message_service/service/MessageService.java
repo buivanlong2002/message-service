@@ -149,15 +149,18 @@ public class MessageService {
                 status.setStatus(MessageStatusEnum.SENT);
             }
 
-            status.setUpdatedAt(LocalDateTime.now()); // đảm bảo bạn có trường này trong entity
+            status.setUpdatedAt(LocalDateTime.now());
             statusList.add(status);
         }
 
         messageStatusRepository.saveAll(statusList);
 
-        // 8. Mapping sang DTO đầy đủ
-        List<MessageStatus> statusListSaved = messageStatusRepository.findByMessageId(savedMessage.getId());
+        // 8. Reload message từ DB để tránh lỗi lazy/null sender
+        savedMessage = messageRepository.findById(savedMessage.getId())
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy tin nhắn sau khi lưu"));
 
+        // 9. Lấy trạng thái đã lưu
+        List<MessageStatus> statusListSaved = messageStatusRepository.findByMessageId(savedMessage.getId());
         List<SeenByResponse> seenByList = statusListSaved.stream()
                 .filter(s -> s.getStatus() == MessageStatusEnum.SEEN)
                 .map(s -> new SeenByResponse(
@@ -168,21 +171,22 @@ public class MessageService {
                 ))
                 .collect(Collectors.toList());
 
+        // 10. Mapping sang DTO
         MessageResponse response = messageMapper.toMessageResponse(savedMessage, senderId, seenByList);
 
-        // 9. Gửi socket cập nhật đến tất cả các thành viên
+        // 11. Đẩy socket đến các thành viên
         for (ConversationMember member : members) {
             String memberId = member.getUser().getId();
             pushNewMessage.pushUpdatedConversationsToUser(memberId);
+
             if (!memberId.equals(senderId)) {
                 pushNewMessage.pushUpdatedConversationsToMemBer(conversation.getId(), memberId);
             }
         }
 
-        // 10. Trả về kết quả
+        // 12. Trả về kết quả
         return ApiResponse.success("00", "Gửi tin nhắn thành công", response);
     }
-
 
 
     private String getFolderByContentType(String contentType) {

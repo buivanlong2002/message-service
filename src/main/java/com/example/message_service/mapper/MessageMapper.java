@@ -13,11 +13,9 @@ import java.util.stream.Collectors;
 @Component
 public class MessageMapper {
 
-
     public MessageResponse toMessageResponse(Message message) {
         return toMessageResponse(message, null, List.of());
     }
-
 
     public MessageResponse toMessageResponse(
             Message message,
@@ -32,13 +30,8 @@ public class MessageMapper {
 
         // ───────── Reply info ─────────
         String replyToId = null;
-        String replyToContent = null;
-        String replyToSenderName = null;
-
         if (message.getReplyTo() != null) {
-            replyToId         = message.getReplyTo().getId();
-            replyToContent    = message.getReplyTo().getContent();
-            replyToSenderName = message.getReplyTo().getSender().getDisplayName();
+            replyToId = message.getReplyTo().getId();
         }
 
         return new MessageResponse(
@@ -49,8 +42,6 @@ public class MessageMapper {
                 message.getMessageType().name(),
                 message.getCreatedAt(),
                 replyToId,
-                replyToContent,
-                replyToSenderName,
                 message.isEdited(),
                 message.isSeen(),
                 message.isRecalled(),
@@ -60,7 +51,6 @@ public class MessageMapper {
                 seenBy
         );
     }
-
 
     private List<AttachmentResponse> toAttachmentResponseList(List<Attachment> attachments) {
         if (attachments == null || attachments.isEmpty()) return List.of();
@@ -78,9 +68,9 @@ public class MessageMapper {
     private String getTimeAgo(LocalDateTime createdAt) {
         Duration duration = Duration.between(createdAt, LocalDateTime.now());
 
-        if (duration.toMinutes() < 1)  return "Vừa xong";
-        if (duration.toHours()   < 1)  return duration.toMinutes() + " phút trước";
-        if (duration.toDays()    < 1)  return duration.toHours()   + " giờ trước";
-        return duration.toDays()       + " ngày trước";
+        if (duration.toMinutes() < 1) return "Vừa xong";
+        if (duration.toHours() < 1) return duration.toMinutes() + " phút trước";
+        if (duration.toDays() < 1) return duration.toHours() + " giờ trước";
+        return duration.toDays() + " ngày trước";
     }
 }

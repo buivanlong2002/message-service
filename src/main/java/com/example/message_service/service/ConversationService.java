@@ -353,7 +353,6 @@ public class ConversationService {
                 conversation.getCreatedBy()
         );
 
-        // ✅ Kiểm tra chặn nếu là 1-1
         if (!conversation.isGroup() && partner != null && requesterId != null) {
             Optional<User> requesterOpt = userRepository.findById(requesterId);
             if (requesterOpt.isPresent()) {
