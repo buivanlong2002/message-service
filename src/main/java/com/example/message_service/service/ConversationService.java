@@ -210,6 +210,7 @@ public class ConversationService {
                     if (!conv.isGroup()) {
                         // Tìm thành viên từ repository thay vì conv.getMembers()
                         List<ConversationMember> members = conversationMemberRepository.findByConversationId(conv.getId());
+
                         List<MemberResponse> memberResponses = members.stream()
                                 .filter(cm -> cm.getUser() != null && !cm.getUser().getId().equals(userId))
                                 .map(cm -> {
@@ -222,7 +223,15 @@ public class ConversationService {
                                 })
                                 .collect(Collectors.toList());
 
+                        // Bảo vệ: nếu null thì set danh sách rỗng
+                        if (memberResponses == null) {
+                            memberResponses = new ArrayList<>();
+                        }
+
                         response.setMembers(memberResponses);
+                    } else {
+                        // Group không cần trả members (nếu muốn có thể thêm logic riêng ở đây)
+                        response.setMembers(new ArrayList<>()); // Đảm bảo JSON hợp lệ
                     }
 
                     return response;
@@ -236,6 +245,7 @@ public class ConversationService {
 
         return ApiResponse.success("00", "Lấy danh sách cuộc trò chuyện thành công", responses);
     }
+
 
     public ApiResponse<List<ConversationResponse>> getConversationsByUserPaged(String userId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
