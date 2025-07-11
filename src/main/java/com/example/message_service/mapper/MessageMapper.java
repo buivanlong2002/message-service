@@ -1,7 +1,8 @@
 package com.example.message_service.mapper;
 
 import com.example.message_service.dto.response.*;
-import com.example.message_service.model.*;
+import com.example.message_service.model.Attachment;
+import com.example.message_service.model.Message;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -12,20 +13,31 @@ import java.util.stream.Collectors;
 @Component
 public class MessageMapper {
 
+
     public MessageResponse toMessageResponse(Message message) {
+        return toMessageResponse(message, null, List.of());
+    }
+
+
+    public MessageResponse toMessageResponse(
+            Message message,
+            String status,
+            List<SeenByResponse> seenBy
+    ) {
         SenderResponse senderResponse = new SenderResponse(
                 message.getSender().getId(),
                 message.getSender().getDisplayName(),
                 message.getSender().getAvatarUrl()
         );
 
+        // ───────── Reply info ─────────
         String replyToId = null;
         String replyToContent = null;
         String replyToSenderName = null;
 
         if (message.getReplyTo() != null) {
-            replyToId = message.getReplyTo().getId();
-            replyToContent = message.getReplyTo().getContent();
+            replyToId         = message.getReplyTo().getId();
+            replyToContent    = message.getReplyTo().getContent();
             replyToSenderName = message.getReplyTo().getSender().getDisplayName();
         }
 
@@ -44,29 +56,11 @@ public class MessageMapper {
                 message.isRecalled(),
                 toAttachmentResponseList(message.getAttachments()),
                 getTimeAgo(message.getCreatedAt()),
-                null, // status sẽ được set nếu biết userId
-                null  // seenBy không có do không lưu người đã xem
+                status,
+                seenBy
         );
     }
 
-    public MessageResponse toMessageResponse(Message message, String currentUserId) {
-        MessageResponse response = toMessageResponse(message);
-
-        // Gán status theo người hiện tại
-        if (message.getSender().getId().equals(currentUserId)) {
-            response.setStatus("SENT");
-        } else if (message.isSeen()) {
-            response.setStatus("SEEN");
-            response.setSeen(true);
-        } else {
-            response.setStatus("DELIVERED");
-        }
-
-        // Không có seenBy cụ thể nếu không lưu trong bảng phụ
-        response.setSeenBy(null);
-
-        return response;
-    }
 
     private List<AttachmentResponse> toAttachmentResponseList(List<Attachment> attachments) {
         if (attachments == null || attachments.isEmpty()) return List.of();
@@ -84,9 +78,9 @@ public class MessageMapper {
     private String getTimeAgo(LocalDateTime createdAt) {
         Duration duration = Duration.between(createdAt, LocalDateTime.now());
 
-        if (duration.toMinutes() < 1) return "Vừa xong";
-        if (duration.toHours() < 1) return duration.toMinutes() + " phút trước";
-        if (duration.toDays() < 1) return duration.toHours() + " giờ trước";
-        return duration.toDays() + " ngày trước";
+        if (duration.toMinutes() < 1)  return "Vừa xong";
+        if (duration.toHours()   < 1)  return duration.toMinutes() + " phút trước";
+        if (duration.toDays()    < 1)  return duration.toHours()   + " giờ trước";
+        return duration.toDays()       + " ngày trước";
     }
 }

@@ -5,10 +5,10 @@ import lombok.*;
 import java.time.LocalDateTime;
 import java.util.List;
 
-@Setter
 @Getter
-@AllArgsConstructor
+@Setter
 @NoArgsConstructor
+@AllArgsConstructor
 public class MessageResponse {
     private String id;
     private String conversationId;
@@ -26,6 +26,7 @@ public class MessageResponse {
     private boolean recalled;
     private List<AttachmentResponse> attachments;
     private String timeAgo;
+
     private String status; // "SEEN", "SENT", "FAILED"
     private List<SeenByResponse> seenBy;
 }
