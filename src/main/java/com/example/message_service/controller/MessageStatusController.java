@@ -57,9 +57,8 @@ public class MessageStatusController {
     }
 
     @PostMapping("/mark-all-seen")
-    public ResponseEntity<String> markAllAsSeen(@RequestParam String conversationId,
-                                                @RequestParam String userId) {
-        int updated = messageStatusService.markAllMessagesAsSeen(conversationId, userId);
-        return ResponseEntity.ok("Đã cập nhật " + updated + " tin nhắn thành đã xem.");
+    public ApiResponse<Integer> markAllAsSeen(@RequestParam String conversationId,
+                                              @RequestParam String userId) {
+        return messageStatusService.markAllMessagesAsSeen(conversationId, userId);
     }
 }

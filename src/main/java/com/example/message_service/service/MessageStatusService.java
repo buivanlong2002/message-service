@@ -64,9 +64,9 @@ public class MessageStatusService {
 
 
     @Transactional
-    public int markAllMessagesAsSeen(String conversationId, String userId) {
-        int number = messageStatusRepository.markAllAsSeen(conversationId, userId);
+    public ApiResponse<Integer> markAllMessagesAsSeen(String conversationId, String userId) {
+        Integer number = messageStatusRepository.markAllAsSeen(conversationId, userId);
         pushNewMessage.pushUpdatedConversationsToUser(userId);
-        return number;
+        return ApiResponse.success("00","Cập nhập thành công" , number);
     }
 }
