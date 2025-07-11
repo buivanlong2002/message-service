@@ -4,6 +4,7 @@ import com.example.message_service.dto.ApiResponse;
 import com.example.message_service.model.MessageStatus;
 import com.example.message_service.model.MessageStatusEnum;
 import com.example.message_service.repository.MessageStatusRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -61,5 +62,11 @@ public class MessageStatusService {
         MessageStatus updated = messageStatusRepository.save(status);
 
         return ApiResponse.success("00", "Cập nhật trạng thái thành công", updated);
+    }
+
+
+    @Transactional
+    public int markAllMessagesAsSeen(String conversationId, String userId) {
+        return messageStatusRepository.markAllAsSeen(conversationId, userId);
     }
 }

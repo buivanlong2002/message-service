@@ -4,6 +4,7 @@ import com.example.message_service.dto.ApiResponse;
 import com.example.message_service.model.MessageStatus;
 import com.example.message_service.service.MessageStatusService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -53,5 +54,12 @@ public class MessageStatusController {
             @PathVariable String messageStatusId,
             @RequestParam("status") String newStatus) {
         return messageStatusService.updateMessageStatus(messageStatusId, newStatus);
+    }
+
+    @PostMapping("/mark-all-seen")
+    public ResponseEntity<String> markAllAsSeen(@RequestParam String conversationId,
+                                                @RequestParam String userId) {
+        int updated = messageStatusService.markAllMessagesAsSeen(conversationId, userId);
+        return ResponseEntity.ok("Đã cập nhật " + updated + " tin nhắn thành đã xem.");
     }
 }
