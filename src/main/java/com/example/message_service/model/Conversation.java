@@ -1,5 +1,6 @@
 package com.example.message_service.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
@@ -33,6 +34,7 @@ public class Conversation {
     private boolean group;
 
     @OneToMany(mappedBy = "conversation", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<ConversationMember> members;
 
     @Column(nullable = false)
