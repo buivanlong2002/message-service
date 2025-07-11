@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class SeenByResponse {
     private String userId;
-    private String name;
-    private String avatar;
+    private String displayName;
+    private String avatarUrl;
     private LocalDateTime seenAt;
 }

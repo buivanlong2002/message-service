@@ -2,6 +2,7 @@ package com.example.message_service.service;
 
 import com.example.message_service.dto.ApiResponse;
 import com.example.message_service.dto.response.MessageResponse;
+import com.example.message_service.dto.response.SeenByResponse;
 import com.example.message_service.mapper.MessageMapper;
 import com.example.message_service.model.*;
 import com.example.message_service.repository.*;
@@ -66,7 +67,7 @@ public class MessageService {
             conversation = conversationService.getOrCreateOneToOneConversation(senderId, receiverId);
         }
 
-        // 3. Tạo message mới
+        // 3. Tạo tin nhắn
         Message message = new Message();
         message.setId(UUID.randomUUID().toString());
         message.setSender(sender);
@@ -115,7 +116,9 @@ public class MessageService {
                     attachment.setFileType(contentType);
                     attachment.setFileSize(file.getSize());
                     attachment.setMessage(message);
-                    attachment.setOriginalFileName(Optional.ofNullable(file.getOriginalFilename()).orElse("unknown"));
+                    attachment.setOriginalFileName(
+                            Optional.ofNullable(file.getOriginalFilename()).orElse("unknown")
+                    );
 
                     attachments.add(attachment);
                 }
@@ -139,21 +142,35 @@ public class MessageService {
             MessageStatus status = new MessageStatus();
             status.setMessage(savedMessage);
             status.setUser(member.getUser());
-            if (member.getUser().getId().equals(savedMessage.getSender().getId())) {
+
+            if (member.getUser().getId().equals(senderId)) {
                 status.setStatus(MessageStatusEnum.SEEN);
             } else {
                 status.setStatus(MessageStatusEnum.SENT);
             }
 
+            status.setUpdatedAt(LocalDateTime.now()); // đảm bảo bạn có trường này trong entity
             statusList.add(status);
         }
 
         messageStatusRepository.saveAll(statusList);
 
-        // 8. Mapping sang DTO phản hồi
-        MessageResponse response = messageMapper.toMessageResponse(savedMessage);
+        // 8. Mapping sang DTO đầy đủ
+        List<MessageStatus> statusListSaved = messageStatusRepository.findByMessageId(savedMessage.getId());
 
-        // 9. Gửi thông báo tới các thành viên
+        List<SeenByResponse> seenByList = statusListSaved.stream()
+                .filter(s -> s.getStatus() == MessageStatusEnum.SEEN)
+                .map(s -> new SeenByResponse(
+                        s.getUser().getId(),
+                        s.getUser().getDisplayName(),
+                        s.getUser().getAvatarUrl(),
+                        s.getUpdatedAt()
+                ))
+                .collect(Collectors.toList());
+
+        MessageResponse response = messageMapper.toMessageResponse(savedMessage, senderId, seenByList);
+
+        // 9. Gửi socket cập nhật đến tất cả các thành viên
         for (ConversationMember member : members) {
             String memberId = member.getUser().getId();
             pushNewMessage.pushUpdatedConversationsToUser(memberId);
@@ -162,7 +179,7 @@ public class MessageService {
             }
         }
 
-        // 10. Trả về kết quả thành công
+        // 10. Trả về kết quả
         return ApiResponse.success("00", "Gửi tin nhắn thành công", response);
     }
 
