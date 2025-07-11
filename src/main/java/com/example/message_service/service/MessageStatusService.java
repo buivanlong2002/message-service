@@ -4,6 +4,7 @@ import com.example.message_service.dto.ApiResponse;
 import com.example.message_service.model.MessageStatus;
 import com.example.message_service.model.MessageStatusEnum;
 import com.example.message_service.repository.MessageStatusRepository;
+import com.example.message_service.service.util.PushNewMessage;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -14,13 +15,10 @@ import java.util.Optional;
 
 @Service
 public class MessageStatusService {
-
-    private final MessageStatusRepository messageStatusRepository;
-
     @Autowired
-    public MessageStatusService(MessageStatusRepository messageStatusRepository) {
-        this.messageStatusRepository = messageStatusRepository;
-    }
+    private  MessageStatusRepository messageStatusRepository;
+    @Autowired
+    private PushNewMessage pushNewMessage;
 
     // Lấy tất cả trạng thái của một tin nhắn
     public ApiResponse<List<MessageStatus>> getStatusByMessage(String messageId) {
@@ -67,6 +65,8 @@ public class MessageStatusService {
 
     @Transactional
     public int markAllMessagesAsSeen(String conversationId, String userId) {
-        return messageStatusRepository.markAllAsSeen(conversationId, userId);
+        int number = messageStatusRepository.markAllAsSeen(conversationId, userId);
+        pushNewMessage.pushUpdatedConversationsToUser(userId);
+        return number;
     }
 }
