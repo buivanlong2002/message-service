@@ -9,4 +9,5 @@ import lombok.*;
 public class EditMessageRequest {
     private String messageId;
     private String newContent;
+    private String conversationId;
 }

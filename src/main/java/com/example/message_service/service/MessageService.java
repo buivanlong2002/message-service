@@ -261,7 +261,7 @@ public class MessageService {
         return ApiResponse.success("00", "Lấy tin nhắn theo người gửi thành công", responseList);
     }
 
-    public ApiResponse<MessageResponse> editMessage(String messageId, String newContent) {
+    public ApiResponse<MessageResponse> editMessage(String messageId, String newContent, String conversationId) {
         Optional<Message> messageOpt = messageRepository.findById(messageId);
         if (messageOpt.isEmpty()) {
             return ApiResponse.error("04", "Không tìm thấy tin nhắn để chỉnh sửa");
@@ -272,6 +272,10 @@ public class MessageService {
         message.setEdited(true);
 
         Message updated = messageRepository.save(message);
+        List<ConversationMember> members = conversationMemberRepository.findByConversationId(conversationId);
+        for (ConversationMember member : members) {
+            pushNewMessage.pushUpdatedConversationsToMemBer(conversationId, member.getId());
+        }
         MessageResponse response = messageMapper.toMessageResponse(updated);
         return ApiResponse.success("00", "Chỉnh sửa thành công", response);
     }
