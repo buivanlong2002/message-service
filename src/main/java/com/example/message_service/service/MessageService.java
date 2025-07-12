@@ -285,7 +285,7 @@ public class MessageService {
             );
 
             // Đồng thời cập nhật danh sách cuộc trò chuyện nếu cần
-            pushNewMessage.pushUpdatedConversationsToMemBer(conversationId, member.getId());
+            pushNewMessage.pushUpdatedConversationsToMemBer(conversationId, member.getUser().getId());
         }
 
         return ApiResponse.success("00", "Chỉnh sửa thành công", response);
