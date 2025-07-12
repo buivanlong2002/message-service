@@ -14,6 +14,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -39,6 +40,7 @@ public class MessageService {
     @Autowired private PushNewMessage pushNewMessage;
     @Autowired private ConversationMemberRepository conversationMemberRepository;
     @Autowired private MessageStatusRepository messageStatusRepository;
+    @Autowired   private  SimpMessagingTemplate messagingTemplate;
 
     private static final long MAX_VIDEO_SIZE = 100 * 1024 * 1024;
 
@@ -260,7 +262,6 @@ public class MessageService {
 
         return ApiResponse.success("00", "Lấy tin nhắn theo người gửi thành công", responseList);
     }
-
     public ApiResponse<MessageResponse> editMessage(String messageId, String newContent, String conversationId) {
         Optional<Message> messageOpt = messageRepository.findById(messageId);
         if (messageOpt.isEmpty()) {
@@ -272,13 +273,24 @@ public class MessageService {
         message.setEdited(true);
 
         Message updated = messageRepository.save(message);
+        MessageResponse response = messageMapper.toMessageResponse(updated);
+
+        // Gửi thông báo đến tất cả thành viên của cuộc trò chuyện
         List<ConversationMember> members = conversationMemberRepository.findByConversationId(conversationId);
         for (ConversationMember member : members) {
+            // Gửi thông báo cập nhật message đến từng thành viên
+            messagingTemplate.convertAndSend(
+                    "/topic/message-updated/" + member.getId(),
+                    response
+            );
+
+            // Đồng thời cập nhật danh sách cuộc trò chuyện nếu cần
             pushNewMessage.pushUpdatedConversationsToMemBer(conversationId, member.getId());
         }
-        MessageResponse response = messageMapper.toMessageResponse(updated);
+
         return ApiResponse.success("00", "Chỉnh sửa thành công", response);
     }
+
 
     public void markAsSeen(String messageId) {
         Message message = messageRepository.findById(messageId)
