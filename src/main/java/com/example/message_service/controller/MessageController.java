@@ -91,7 +91,7 @@ public class MessageController {
     // Chỉnh sửa nội dung tin nhắn
     @PostMapping("/edit")
     public ApiResponse<MessageResponse> editMessage(@RequestBody EditMessageRequest request) {
-        return messageService.editMessage(request.getMessageId(), request.getNewContent());
+        return messageService.editMessage(request.getMessageId(), request.getNewContent() , request.getConversationId());
     }
 
     @PutMapping("/{id}/seen")
