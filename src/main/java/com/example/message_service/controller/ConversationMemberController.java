@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/conversation-members")
@@ -32,9 +33,9 @@ public class ConversationMemberController {
 
     // Lấy danh sách thành viên trong một cuộc trò chuyện
     @PostMapping("/members-by-conversation")
-    public ApiResponse<List<User>> getMembersByConversation(
+    public ApiResponse<Map<String, Object>> getMembersByConversation(
             @RequestBody GetMembersByConversationRequest request) {
-        String conversationId = request.getConversationId().toString();  // Truyền trực tiếp conversationId là String
+        String conversationId = request.getConversationId().toString();  // hoặc request.getConversationId() nếu đã là String
         return conversationMemberService.getMembersByConversationId(conversationId);
     }
 
