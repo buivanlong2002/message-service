@@ -11,9 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -84,7 +82,7 @@ public class ConversationMemberService {
     }
 
     // Lấy danh sách thành viên của cuộc trò chuyện
-    public ApiResponse<List<User>> getMembersByConversationId(String conversationId) {
+    public ApiResponse<Map<String, Object>> getMembersByConversationId(String conversationId) {
         Optional<Conversation> optionalConversation = conversationRepository.findById(conversationId);
         if (optionalConversation.isEmpty()) {
             return ApiResponse.error("02", "Không tìm thấy cuộc trò chuyện: " + conversationId);
@@ -95,7 +93,15 @@ public class ConversationMemberService {
                 .map(ConversationMember::getUser)
                 .collect(Collectors.toList());
 
-        return ApiResponse.success("00", "Lấy danh sách người dùng thành công", users);
+        // Lấy id của trưởng nhóm (creator)
+        String creatorId = optionalConversation.get().getCreatedBy();
+
+        // Trả về cả danh sách users và creatorId
+        Map<String, Object> result = new HashMap<>();
+        result.put("users", users);
+        result.put("creatorId", creatorId);
+
+        return ApiResponse.success("00", "Lấy danh sách người dùng thành công", result);
     }
 
     // Xóa thành viên khỏi cuộc trò chuyện
