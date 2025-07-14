@@ -13,7 +13,7 @@ public class EmailService {
 
     public void sendResetPasswordEmail(String to, String token) {
         // Link đến trang reset-password.html trên frontend
-        String resetLink = "http://localhost:63342/message-ui/reset-password.html?token=" + token;
+        String resetLink = "https://tomotalk.netlify.app/reset-password.html?token=" + token;
 
         String subject = "TomoTalk - Đặt lại mật khẩu";
         String text = "Bạn đã yêu cầu đặt lại mật khẩu cho tài khoản TomoTalk.\n\n"
